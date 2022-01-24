@@ -69,7 +69,7 @@ fn negamax(board: &mut Board, depth: u8, mut a: i16, b: i16, color: i16) -> Eval
 
     // obtains the valid moves
     for m in board.get_valid_moves() {
-        let _ = board.add(m);
+        board.add_unchecked(m);
 
         let eval_val = -negamax(board, depth - 1, -b, -a, -color).get_eval();
 

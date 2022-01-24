@@ -105,8 +105,12 @@ impl Board {
     /// returns `true` if a new piece can be added into 
     /// the specified column.
     fn can_add(&self, col: usize) -> bool {
+        !Board::col_is_occupied(self.total_board, col)
+    }
+
+    pub fn col_is_occupied(board: u64, col: usize) -> bool {
         let top_bit = 1 << ((HEIGHT - 1) + col * (HEIGHT + 1));
-        (self.total_board & top_bit) == 0
+        (board & top_bit) != 0
     }
 
     /// adds a piece into the specified column. If operation cannot be done,
@@ -115,20 +119,26 @@ impl Board {
     /// Also returns the winner of the board if possible.
     pub fn add(&mut self, col: usize) -> Result<(), &str> {
         if self.can_add(col) {
-            let row = self.get_height(col);
-
-            // updates the player's board
-            self.flip(row, col);
-
-            // adds to history of moves
-            self.history.push(col);
-
-            // switch to next player to play
-            self.nextplayer = !self.nextplayer;
+            self.add_unchecked(col);
             Ok(())
         } else {
             Err("Unable to add")
         }
+    }
+
+    /// performs the add operation assuming that the selected column
+    /// can be added to.
+    pub fn add_unchecked(&mut self, col: usize) {
+        let row = self.get_height(col);
+
+        // updates the player's board
+        self.flip(row, col);
+
+        // adds to history of moves
+        self.history.push(col);
+
+        // switch to next player to play
+        self.nextplayer = !self.nextplayer;
     }
 
     /// undoes the last move, if possible.
@@ -171,7 +181,7 @@ impl Board {
 
     /// obtains the string representation of a bitboard.
     pub fn get_bitboard_str(bitboard: u64) -> String {
-        let mut s = String::with_capacity((SIZE + HEIGHT).into());
+        let mut s = String::with_capacity(SIZE + HEIGHT);
         for i in 0..SIZE {
             let c = i % WIDTH;
             let r = HEIGHT - i / WIDTH - 1;
@@ -179,9 +189,11 @@ impl Board {
 
             if bitboard & mask != 0 {
                 s.push('1');
-            } else {
+            }
+            else {
                 s.push('0');
             }
+
             if (i + 1) % WIDTH == 0 {
                 s.push('\n');
             };
@@ -196,16 +208,7 @@ impl Board {
 
     /// puts the valid moves into the given moves_vec
     pub fn get_valid_moves(&self) -> Moves {
-        let mut moves = Moves::new();
-
-        // manually hardcode in the wanted ordering.
-        for col in [0, 6, 1, 5, 2, 4, 3] {
-            if self.can_add(col) {
-                moves.add_move(col);
-            }
-        }
-
-        moves
+        Moves::new(self.total_board)
     }
 
     /// checks whether the entire board is entirely filled.

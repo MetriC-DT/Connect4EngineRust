@@ -64,7 +64,15 @@ fn test_win_vertical() {
 fn test_valid_moves() {
     let mut b = Board::new();
     let moves = b.get_valid_moves();
-    assert_eq!(moves.count(), WIDTH as usize);
+    assert_eq!(moves.count(), WIDTH);
+    // has these values
+    assert!(moves.clone().find(|&x| x == 0).is_some());
+    assert!(moves.clone().find(|&x| x == 1).is_some());
+    assert!(moves.clone().find(|&x| x == 2).is_some());
+    assert!(moves.clone().find(|&x| x == 3).is_some());
+    assert!(moves.clone().find(|&x| x == 4).is_some());
+    assert!(moves.clone().find(|&x| x == 5).is_some());
+    assert!(moves.clone().find(|&x| x == 6).is_some());
 
     b.add(3).unwrap();
     b.add(3).unwrap();
