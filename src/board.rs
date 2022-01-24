@@ -71,7 +71,7 @@ impl Board {
         Self {
             board: 0,
             total_board: 0,
-            history: Vec::with_capacity(SIZE as usize),
+            history: Vec::with_capacity(SIZE),
             nextplayer: false,
         }
     }
@@ -81,7 +81,7 @@ impl Board {
     /// 0 <= col < WIDTH
     pub fn get_height(&self, col: usize) -> usize {
         let colmask: u64 = ((1 << HEIGHT) - 1) << (col * (HEIGHT + 1)) as u64;
-        (self.total_board & colmask).count_ones().try_into().unwrap()
+        (self.total_board & colmask).count_ones() as usize
     }
 
     /// obtains the value at the given row and col, if it exists.
@@ -128,6 +128,8 @@ impl Board {
 
     /// performs the add operation assuming that the selected column
     /// can be added to.
+    ///
+    /// Undefined behavior if col cannot be added to.
     pub fn add_unchecked(&mut self, col: usize) {
         let row = self.get_height(col);
 
@@ -157,8 +159,10 @@ impl Board {
 
     /// flips the bit set at `row` and `col`
     fn flip(&mut self, row: usize, col: usize) {
-        let mask = 1 << (row + col * (HEIGHT + 1));
-        let boardmask = (self.nextplayer as u64) << (row + col * (HEIGHT + 1));
+        let shift = row + col * (HEIGHT + 1);
+        let mask = 1 << shift;
+        let boardmask = (self.nextplayer as u64) << shift;
+
         self.board ^= boardmask;
         self.total_board ^= mask;
     }
@@ -201,9 +205,15 @@ impl Board {
         s
     }
 
-    /// returns [player0 bitboard, player1 bitboard]
-    pub fn get_bitboards(&self) -> [u64; 2] {
-        [self.board ^ self.total_board, self.board]
+    /// determines whether the first player has won
+    pub fn is_first_player_win(&self) -> bool {
+        let p1board = self.board ^ self.total_board;
+        Board::is_win(p1board)
+    }
+
+    pub fn is_second_player_win(&self) -> bool {
+        let p2board = self.board;
+        Board::is_win(p2board)
     }
 
     /// puts the valid moves into the given moves_vec

@@ -15,7 +15,7 @@ impl Moves {
     }
 }
 
-/// iterator over the elements inside Moves.
+/// iterator over the possible moves that can be played.
 impl Iterator for Moves {
     type Item=usize;
 

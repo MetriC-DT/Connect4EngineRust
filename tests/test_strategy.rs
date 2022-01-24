@@ -22,8 +22,7 @@ fn test_finish_1() {
 		turncount += 1;
 	}
 
-    let boards = b.get_bitboards();
-    assert!(Board::is_win(boards[0]));
-    assert!(!Board::is_win(boards[1]));
+    assert!(b.is_first_player_win());
+    assert!(!b.is_second_player_win());
     assert_eq!(turncount, MIN_DEPTH);
 }

@@ -92,15 +92,13 @@ fn negamax(board: &mut Board, depth: u8, mut a: i16, b: i16, color: i16) -> Eval
 /// returns None if not game over. Otherwise, will
 /// return the evaluation of the board
 pub fn game_over_eval(board: &Board, depth: u8) -> Option<i16> {
-    let bitboards = board.get_bitboards();
-
     // if first player wins, return the positive
-    if Board::is_win(bitboards[0]) {
+    if board.is_first_player_win() {
         Some(MAX_SCORE + depth as i16)
     }
 
     // if second player wins, return negative
-    else if Board::is_win(bitboards[1]) {
+    else if board.is_second_player_win() {
         Some(-(MAX_SCORE + depth as i16))
     }
 

@@ -53,11 +53,23 @@ fn test_win_vertical() {
     b.add(3).unwrap();
     b.add(2).unwrap();
     b.add(3).unwrap();
+    assert!(b.is_first_player_win());
+    assert!(!b.is_second_player_win());
+}
 
-    let boards = b.get_bitboards();
+#[test]
+fn test_win_horizontal() {
+    let mut b = Board::new();
+    b.add(0).unwrap();
+    b.add(0).unwrap();
+    b.add(1).unwrap();
+    b.add(1).unwrap();
+    b.add(2).unwrap();
+    b.add(2).unwrap();
+    b.add(3).unwrap();
 
-    assert!(Board::is_win(boards[0]));
-    assert!(!Board::is_win(boards[1]));
+    assert!(b.is_first_player_win());
+    assert!(!b.is_second_player_win());
 }
 
 #[test]
@@ -74,6 +86,7 @@ fn test_valid_moves() {
     assert!(moves.clone().find(|&x| x == 5).is_some());
     assert!(moves.clone().find(|&x| x == 6).is_some());
 
+    // fills the 3rd and 6th columns
     b.add(3).unwrap();
     b.add(3).unwrap();
     b.add(3).unwrap();
@@ -90,11 +103,11 @@ fn test_valid_moves() {
     let moves = b.get_valid_moves();
     assert_eq!(moves.count(), (WIDTH - 2) as usize);
 
-    // does not have these
+    // cannot put in these columns
     assert!(moves.clone().find(|&x| x == 3).is_none());
     assert!(moves.clone().find(|&x| x == 6).is_none());
 
-    // has these values
+    // has these columns
     assert!(moves.clone().find(|&x| x == 0).is_some());
     assert!(moves.clone().find(|&x| x == 1).is_some());
     assert!(moves.clone().find(|&x| x == 2).is_some());
