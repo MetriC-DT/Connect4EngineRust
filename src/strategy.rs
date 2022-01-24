@@ -1,7 +1,7 @@
 use crate::board::{Board, SIZE, WIDTH, HEIGHT};
 
 pub const MAX_SCORE: i16 = 25000;
-pub const MIN_DEPTH: u8 = 10;
+pub const MIN_DEPTH: u8 = 13;
 
 // Evaluation table for number of possible 4-in-a-rows
 const EVALTABLE: [i16; SIZE as usize] = [
@@ -13,15 +13,16 @@ const EVALTABLE: [i16; SIZE as usize] = [
 	3, 4, 5,  7,  5,  4, 3
 ];
 
+/// pair with (move, eval).
 #[derive(Debug)]
-pub struct EvalPair(u8, i16);
+pub struct EvalPair(usize, i16);
 
 impl EvalPair {
     pub fn set_eval(&mut self, eval: i16) {
         self.1 = eval;
     }
 
-    pub fn set_move(&mut self, mv: u8) {
+    pub fn set_move(&mut self, mv: usize) {
         self.0 = mv;
     }
 
@@ -29,7 +30,7 @@ impl EvalPair {
         self.1
     }
 
-    pub fn get_move(&self) -> u8 {
+    pub fn get_move(&self) -> usize {
         self.0
     }
 }
@@ -52,7 +53,7 @@ pub fn strategy(board: &mut Board) -> EvalPair {
 }
 
 fn negamax(board: &mut Board, depth: u8, mut a: i16, b: i16, color: i16) -> EvalPair {
-    let mut p = EvalPair(u8::MAX, i16::MIN);
+    let mut p = EvalPair(usize::MAX, i16::MIN);
 
     // if game over, get the evaluation and terminate
     if let Some(val) = game_over_eval(board, depth) {
@@ -67,10 +68,8 @@ fn negamax(board: &mut Board, depth: u8, mut a: i16, b: i16, color: i16) -> Eval
     }
 
     // obtains the valid moves
-    let moves = board.get_valid_moves();
-
-    for m in moves {
-        board.add(m).unwrap();
+    for m in board.get_valid_moves() {
+        let _ = board.add(m);
 
         let eval_val = -negamax(board, depth - 1, -b, -a, -color).get_eval();
 
@@ -121,11 +120,10 @@ pub fn game_over_eval(board: &Board, depth: u8) -> Option<i16> {
 /// when this function is called, the board MUST NOT BE GAME OVER.
 /// If it is GAME OVER, use the `game_over_eval` function instead.
 pub fn eval(board: &Board) -> i16 {
-    let mut r: u8;
-    let mut c: u8;
+    let mut r: usize;
+    let mut c: usize;
     let mut total = 0;
     for (i, val) in EVALTABLE.into_iter().enumerate() {
-        let i = i as u8;
         c = i % WIDTH;
         r = HEIGHT - i / WIDTH - 1;
 

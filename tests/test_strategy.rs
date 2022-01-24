@@ -12,7 +12,7 @@ fn test_finish_1() {
         }
 
         let col = c.to_digit(10).unwrap();
-        b.add(col as u8).unwrap();
+        b.add(col as usize).unwrap();
     }
 
     let mut turncount = 0;

@@ -1,13 +1,15 @@
 use std::fmt;
 
+use crate::moves::Moves;
+
 /// Height of the connect 4 board
-pub const HEIGHT: u8 = 6;
+pub const HEIGHT: usize = 6;
 
 /// Width of the connect 4 board.
-pub const WIDTH: u8 = 7;
+pub const WIDTH: usize = 7;
 
 /// Total number of elements of the board.
-pub const SIZE: u8 = WIDTH * HEIGHT;
+pub const SIZE: usize = WIDTH * HEIGHT;
 
 /// down, up-left, left, down-left directions of bitboard
 pub const DIRECTION: [usize; 4] = [1, 6, 7, 8];
@@ -38,13 +40,13 @@ pub const DIRECTION: [usize; 4] = [1, 6, 7, 8];
 pub struct Board {
     board: u64,
     total_board: u64,
-    history: Vec<u8>,
+    history: Vec<usize>,
     nextplayer: bool,
 }
 
 impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut s = String::with_capacity((SIZE + HEIGHT).into());
+        let mut s = String::with_capacity(SIZE + HEIGHT);
         for i in 0..SIZE {
             let c = i % WIDTH;
             let r = HEIGHT - i / WIDTH - 1;
@@ -69,7 +71,7 @@ impl Board {
         Self {
             board: 0,
             total_board: 0,
-            history: Vec::with_capacity(SIZE.into()),
+            history: Vec::with_capacity(SIZE as usize),
             nextplayer: false,
         }
     }
@@ -77,7 +79,7 @@ impl Board {
     /// Obtains the height of the specified column.
     ///
     /// 0 <= col < WIDTH
-    pub fn get_height(&self, col: u8) -> u8 {
+    pub fn get_height(&self, col: usize) -> usize {
         let colmask: u64 = ((1 << HEIGHT) - 1) << (col * (HEIGHT + 1)) as u64;
         (self.total_board & colmask).count_ones().try_into().unwrap()
     }
@@ -87,7 +89,7 @@ impl Board {
     /// is equal to row `0` and the topmost is row `5`
     ///
     /// returns `true` if occupied, otherwise, `false`
-    pub fn get(&self, row: u8, col: u8) -> Option<bool> {
+    pub fn get(&self, row: usize, col: usize) -> Option<bool> {
         let mask = 1 << (row + col * (HEIGHT + 1));
         let piece = (self.board & mask) != 0;
         let within_total = (self.total_board & mask) != 0;
@@ -102,7 +104,7 @@ impl Board {
 
     /// returns `true` if a new piece can be added into 
     /// the specified column.
-    fn can_add(&self, col: u8) -> bool {
+    fn can_add(&self, col: usize) -> bool {
         let top_bit = 1 << ((HEIGHT - 1) + col * (HEIGHT + 1));
         (self.total_board & top_bit) == 0
     }
@@ -111,7 +113,7 @@ impl Board {
     /// then it throws an error.
     ///
     /// Also returns the winner of the board if possible.
-    pub fn add(&mut self, col: u8) -> Result<(), &str> {
+    pub fn add(&mut self, col: usize) -> Result<(), &str> {
         if self.can_add(col) {
             let row = self.get_height(col);
 
@@ -144,7 +146,7 @@ impl Board {
     }
 
     /// flips the bit set at `row` and `col`
-    fn flip(&mut self, row: u8, col: u8) {
+    fn flip(&mut self, row: usize, col: usize) {
         let mask = 1 << (row + col * (HEIGHT + 1));
         let boardmask = (self.nextplayer as u64) << (row + col * (HEIGHT + 1));
         self.board ^= boardmask;
@@ -193,27 +195,25 @@ impl Board {
     }
 
     /// puts the valid moves into the given moves_vec
-    pub fn get_valid_moves(&self) -> Vec<u8> {
-        let mut moves_vec = Vec::with_capacity(WIDTH.into());
-        let mut col = WIDTH as i8 / 2;
-        let mut off;
+    pub fn get_valid_moves(&self) -> Moves {
+        let mut moves = Moves::new();
 
-        for i in 0i8..WIDTH as i8 {
-            off = if i % 2 == 0 {i} else {-i};
-            col += off;
-
-            if self.can_add(col as u8) {
-                moves_vec.push(col as u8);
+        // manually hardcode in the wanted ordering.
+        for col in [0, 6, 1, 5, 2, 4, 3] {
+            if self.can_add(col) {
+                moves.add_move(col);
             }
         }
 
-        moves_vec
+        moves
     }
 
+    /// checks whether the entire board is entirely filled.
     pub fn is_filled(&self) -> bool {
-        self.total_board.count_ones() == SIZE.into()
+        self.total_board.count_ones() as usize == SIZE
     }
 
+    /// obtains the next player (player to make the move next).
     pub fn get_next_player(&self) -> bool {
         self.nextplayer
     }

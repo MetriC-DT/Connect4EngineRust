@@ -5,9 +5,11 @@ fn main() {
 
     let mut b = Board::new();
     let moves = b.get_valid_moves();
-    println!("{:?}", moves);
 
-    b.add(3).unwrap();
+    for mv in moves {
+        println!("{}", mv);
+    }
+
     b.add(3).unwrap();
     b.add(3).unwrap();
 
