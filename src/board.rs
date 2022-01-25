@@ -3,16 +3,22 @@ use std::fmt;
 use crate::moves::Moves;
 
 /// Height of the connect 4 board
-pub const HEIGHT: usize = 6;
+pub const HEIGHT: u8 = 6;
 
 /// Width of the connect 4 board.
-pub const WIDTH: usize = 7;
+pub const WIDTH: u8 = 7;
 
 /// Total number of elements of the board.
-pub const SIZE: usize = WIDTH * HEIGHT;
+pub const SIZE: u8 = WIDTH * HEIGHT;
 
 /// down, up-left, left, down-left directions of bitboard
 pub const DIRECTION: [usize; 4] = [1, 6, 7, 8];
+
+/// bit representation of the playable board.
+pub const PLAYABLE_REGION: u64 = 0b0111111011111101111110111111011111101111110111111;
+
+/// mask for bottom row.
+pub const BOTTOM_ROW_MASK: u64 = 0b0000001000000100000010000001000000100000010000001;
 
 /// Bitboard implementation of the Connect 4 Board.
 /// 
@@ -40,13 +46,13 @@ pub const DIRECTION: [usize; 4] = [1, 6, 7, 8];
 pub struct Board {
     board: u64,
     total_board: u64,
-    history: Vec<usize>,
+    history: Vec<u8>,
     nextplayer: bool,
 }
 
 impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut s = String::with_capacity(SIZE + HEIGHT);
+        let mut s = String::with_capacity((SIZE + HEIGHT) as usize);
         for i in 0..SIZE {
             let c = i % WIDTH;
             let r = HEIGHT - i / WIDTH - 1;
@@ -66,12 +72,18 @@ impl fmt::Display for Board {
     }
 }
 
+impl Default for Board {
+    fn default() -> Self {
+        Board::new()
+    }
+}
+
 impl Board {
     pub fn new() -> Self {
         Self {
             board: 0,
             total_board: 0,
-            history: Vec::with_capacity(SIZE),
+            history: Vec::with_capacity(SIZE as usize),
             nextplayer: false,
         }
     }
@@ -79,9 +91,9 @@ impl Board {
     /// Obtains the height of the specified column.
     ///
     /// 0 <= col < WIDTH
-    pub fn get_height(&self, col: usize) -> usize {
+    pub fn get_height(&self, col: u8) -> u8 {
         let colmask: u64 = ((1 << HEIGHT) - 1) << (col * (HEIGHT + 1)) as u64;
-        (self.total_board & colmask).count_ones() as usize
+        (self.total_board & colmask).count_ones() as u8
     }
 
     /// obtains the value at the given row and col, if it exists.
@@ -89,7 +101,7 @@ impl Board {
     /// is equal to row `0` and the topmost is row `5`
     ///
     /// returns `true` if occupied, otherwise, `false`
-    pub fn get(&self, row: usize, col: usize) -> Option<bool> {
+    pub fn get(&self, row: u8, col: u8) -> Option<bool> {
         let mask = 1 << (row + col * (HEIGHT + 1));
         let piece = (self.board & mask) != 0;
         let within_total = (self.total_board & mask) != 0;
@@ -104,20 +116,18 @@ impl Board {
 
     /// returns `true` if a new piece can be added into 
     /// the specified column.
-    fn can_add(&self, col: usize) -> bool {
+    fn can_add(&self, col: u8) -> bool {
         !Board::col_is_occupied(self.total_board, col)
     }
 
-    pub fn col_is_occupied(board: u64, col: usize) -> bool {
+    pub fn col_is_occupied(board: u64, col: u8) -> bool {
         let top_bit = 1 << ((HEIGHT - 1) + col * (HEIGHT + 1));
         (board & top_bit) != 0
     }
 
     /// adds a piece into the specified column. If operation cannot be done,
     /// then it throws an error.
-    ///
-    /// Also returns the winner of the board if possible.
-    pub fn add(&mut self, col: usize) -> Result<(), &str> {
+    pub fn add(&mut self, col: u8) -> Result<(), &str> {
         if self.can_add(col) {
             self.add_unchecked(col);
             Ok(())
@@ -130,7 +140,7 @@ impl Board {
     /// can be added to.
     ///
     /// Undefined behavior if col cannot be added to.
-    pub fn add_unchecked(&mut self, col: usize) {
+    pub fn add_unchecked(&mut self, col: u8) {
         let row = self.get_height(col);
 
         // updates the player's board
@@ -158,7 +168,7 @@ impl Board {
     }
 
     /// flips the bit set at `row` and `col`
-    fn flip(&mut self, row: usize, col: usize) {
+    fn flip(&mut self, row: u8, col: u8) {
         let shift = row + col * (HEIGHT + 1);
         let mask = 1 << shift;
         let boardmask = (self.nextplayer as u64) << shift;
@@ -171,7 +181,7 @@ impl Board {
     ///
     /// We do not need an option for checking if this current player has lost
     /// because you cannot lose the game on the turn you played your move.
-    pub fn is_win(bitboard: u64) -> bool {
+    fn is_win(bitboard: u64) -> bool {
         for dir in DIRECTION {
             // checks two at a time for better efficiency.
             let bb = bitboard & (bitboard >> dir);
@@ -185,7 +195,7 @@ impl Board {
 
     /// obtains the string representation of a bitboard.
     pub fn get_bitboard_str(bitboard: u64) -> String {
-        let mut s = String::with_capacity(SIZE + HEIGHT);
+        let mut s = String::with_capacity((SIZE + HEIGHT) as usize);
         for i in 0..SIZE {
             let c = i % WIDTH;
             let r = HEIGHT - i / WIDTH - 1;
@@ -223,11 +233,52 @@ impl Board {
 
     /// checks whether the entire board is entirely filled.
     pub fn is_filled(&self) -> bool {
-        self.total_board.count_ones() as usize == SIZE
+        self.total_board == PLAYABLE_REGION
     }
 
     /// obtains the next player (player to make the move next).
     pub fn get_next_player(&self) -> bool {
         self.nextplayer
+    }
+
+    /// obtains the unique position key. This is calculated by
+    /// obtaining the top bound of the total board for each column
+    /// then shifting it upwards by 1, then xor with the player board.
+    ///
+    /// e.g. if
+    /// player board:
+    /// 0 0 0 0 0 0 0
+    /// 0 1 0 0 1 0 0
+    /// 1 0 0 0 0 0 0
+    /// 0 1 1 0 1 0 0
+    /// 0 1 1 0 1 0 0
+    /// 1 0 0 0 0 0 0
+    ///
+    /// total board:
+    /// 0 0 0 0 1 0 0
+    /// 1 1 0 0 1 0 0
+    /// 1 1 0 0 1 0 0
+    /// 1 1 1 0 1 0 0
+    /// 1 1 1 0 1 0 0
+    /// 1 1 1 1 1 0 0
+    ///
+    /// top bound of total board:
+    /// 0 0 0 0 1 0 0
+    /// 1 1 0 0 0 0 0
+    /// 0 0 0 0 0 0 0
+    /// 0 0 1 0 0 0 0
+    /// 0 0 0 0 0 0 0
+    /// 0 0 0 1 0 0 0
+    ///
+    /// We shift everything up by 1 to get the bounding limits
+    /// of the playable board. This works because a slot of `0` below the
+    /// bounding limits implies that the slot is occupied by the first player,
+    /// while zeroes above mean empty.
+    pub fn get_unique_position_key(&self) -> u64 {
+        // shifts everything up by 1, and fills in the bottom row with 1
+        let shifted_total = (self.total_board << 1) | BOTTOM_ROW_MASK;
+        let bounding_limits = shifted_total ^ self.total_board;
+
+        bounding_limits ^ self.board
     }
 }

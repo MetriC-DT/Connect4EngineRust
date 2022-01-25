@@ -1,4 +1,4 @@
-use connect4engine::board::Board;
+use connect4engine::{board::Board, moves::MoveEvalPair};
 
 #[test]
 fn test_moves_ordering() {
@@ -9,4 +9,11 @@ fn test_moves_ordering() {
     for (mv, col) in mvs.zip(ordering) {
         assert_eq!(mv, col);
     }
+}
+
+#[test]
+fn test_move_eval_pair_init() {
+    let pair = MoveEvalPair::new(3, 4);
+    assert_eq!(pair.get_move(), 3);
+    assert_eq!(pair.get_eval(), 4);
 }

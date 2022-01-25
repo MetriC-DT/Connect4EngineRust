@@ -1,77 +1,60 @@
-use crate::board::{Board, SIZE, WIDTH, HEIGHT};
+use crate::{board::{Board, SIZE}, transpositiontable::TranspositionTable, moves::MoveEvalPair};
 
-pub const MAX_SCORE: i16 = 25000;
-pub const MIN_DEPTH: u8 = 13;
+pub const MAX_SCORE: i8 = 50;
+pub const MIN_DEPTH: i8 = SIZE as i8;
 
 // Evaluation table for number of possible 4-in-a-rows
-const EVALTABLE: [i16; SIZE as usize] = [
-	3, 4, 5,  7,  5,  4, 3,
-	4, 6, 8,  10, 8,  6, 4,
-	5, 8, 11, 13, 11, 8, 5,
-	5, 8, 11, 13, 11, 8, 5,
-	4, 6, 8,  10, 8,  6, 4,
-	3, 4, 5,  7,  5,  4, 3
+pub const EVALTABLE: [i16; SIZE as usize] = [
+    3, 4, 5,  7,  5,  4, 3,
+    4, 6, 8,  10, 8,  6, 4,
+    5, 8, 11, 13, 11, 8, 5,
+    5, 8, 11, 13, 11, 8, 5,
+    4, 6, 8,  10, 8,  6, 4,
+    3, 4, 5,  7,  5,  4, 3
 ];
 
-/// pair with (move, eval).
-#[derive(Debug)]
-pub struct EvalPair(usize, i16);
-
-impl EvalPair {
-    pub fn set_eval(&mut self, eval: i16) {
-        self.1 = eval;
-    }
-
-    pub fn set_move(&mut self, mv: usize) {
-        self.0 = mv;
-    }
-
-    pub fn get_eval(&self) -> i16 {
-        self.1
-    }
-
-    pub fn get_move(&self) -> usize {
-        self.0
-    }
-}
-
-
-pub fn strategy(board: &mut Board) -> EvalPair {
+pub fn strategy(board: &mut Board, table: &mut TranspositionTable) -> MoveEvalPair {
     let color = if board.get_next_player() {-1} else {1};
     let alpha = -MAX_SCORE;
     let beta = MAX_SCORE;
-    let pair: EvalPair;
 
     if color == 1 {
-        pair = negamax(board, MIN_DEPTH, alpha, beta, color);
+        negamax(board, MIN_DEPTH, alpha, beta, color, table)
     }
     else {
-        pair = negamax(board, MIN_DEPTH, -beta, -alpha, color);
+        negamax(board, MIN_DEPTH, -beta, -alpha, color, table)
     }
-
-    pair
 }
 
-fn negamax(board: &mut Board, depth: u8, mut a: i16, b: i16, color: i16) -> EvalPair {
-    let mut p = EvalPair(usize::MAX, i16::MIN);
+fn negamax(board: &mut Board,
+           depth: i8,
+           mut a: i8,
+           b: i8,
+           color: i8,
+           table: &mut TranspositionTable) -> MoveEvalPair {
+
+    // if table contains the position, we return it.
+    // usually, we would need to check depth. However,
+    // because we want to evaluate the game to completion,
+    // this should be fine.
+    if let Some(pair) = table.get(board) {
+        return *pair;
+    }
 
     // if game over, get the evaluation and terminate
-    if let Some(val) = game_over_eval(board, depth) {
-        p.set_eval(val * color);
-        return p;
+    else if let Some(val) = game_over_eval(board, depth) {
+        return MoveEvalPair::new(u8::MAX, val * color);
     }
 
-    // also do the same when max depth is reached
-    else if depth == 0 {
-        p.set_eval(color * eval(board));
-        return p;
-    }
+    let mut p = MoveEvalPair::new(u8::MAX, i8::MIN);
 
     // obtains the valid moves
     for m in board.get_valid_moves() {
         board.add_unchecked(m);
+        let pair = negamax(board, depth - 1, -b, -a, -color, table);
 
-        let eval_val = -negamax(board, depth - 1, -b, -a, -color).get_eval();
+        let eval_val = -pair.get_eval();
+        table.insert(board, pair);
 
         board.undo();
 
@@ -80,7 +63,7 @@ fn negamax(board: &mut Board, depth: u8, mut a: i16, b: i16, color: i16) -> Eval
             p.set_eval(eval_val);
         }
 
-        a = i16::max(a, p.get_eval());
+        a = i8::max(a, p.get_eval());
         if a >= b {
             break;
         }
@@ -91,15 +74,15 @@ fn negamax(board: &mut Board, depth: u8, mut a: i16, b: i16, color: i16) -> Eval
 
 /// returns None if not game over. Otherwise, will
 /// return the evaluation of the board
-pub fn game_over_eval(board: &Board, depth: u8) -> Option<i16> {
+pub fn game_over_eval(board: &Board, depth: i8) -> Option<i8> {
     // if first player wins, return the positive
     if board.is_first_player_win() {
-        Some(MAX_SCORE + depth as i16)
+        Some(MAX_SCORE + depth)
     }
 
     // if second player wins, return negative
     else if board.is_second_player_win() {
-        Some(-(MAX_SCORE + depth as i16))
+        Some(-(MAX_SCORE + depth))
     }
 
     // if draw game
@@ -111,26 +94,4 @@ pub fn game_over_eval(board: &Board, depth: u8) -> Option<i16> {
     else {
         None
     }
-}
-
-/// returns the numerical evaluation of the given board position.
-///
-/// when this function is called, the board MUST NOT BE GAME OVER.
-/// If it is GAME OVER, use the `game_over_eval` function instead.
-pub fn eval(board: &Board) -> i16 {
-    let mut r: usize;
-    let mut c: usize;
-    let mut total = 0;
-    for (i, val) in EVALTABLE.into_iter().enumerate() {
-        c = i % WIDTH;
-        r = HEIGHT - i / WIDTH - 1;
-
-        match board.get(r, c) {
-            Some(false) => total += val,
-            Some(true) => total -= val,
-            _ => (),
-        }
-    }
-
-    total
 }
