@@ -20,6 +20,8 @@ pub const PLAYABLE_REGION: u64 = 0b011111101111110111111011111101111110111111011
 /// mask for bottom row.
 pub const BOTTOM_ROW_MASK: u64 = 0b0000001000000100000010000001000000100000010000001;
 
+pub const COLUMN_MASK: u64 = (1 << HEIGHT) - 1;
+
 /// Bitboard implementation of the Connect 4 Board.
 /// 
 /// The Board is represented as a 64 bit integer, with bits
@@ -46,7 +48,7 @@ pub const BOTTOM_ROW_MASK: u64 = 0b000000100000010000001000000100000010000001000
 pub struct Board {
     board: u64,
     total_board: u64,
-    moves_made: u64
+    moves_made: u8
 }
 
 impl fmt::Display for Board {
@@ -153,23 +155,27 @@ impl Board {
     ///
     /// Undefined behavior if col cannot be added to.
     pub fn add_unchecked(&mut self, col: u8) {
-        let row = self.get_height(col);
-
-        // updates the player's board
-        self.flip(row, col);
+        // updates the board
+        self.set_next_available(col);
 
         // adds to history of moves
         self.moves_made += 1;
     }
 
-    /// flips the bit set at `row` and `col`
-    fn flip(&mut self, row: u8, col: u8) {
-        let shift = row + col * (HEIGHT + 1);
-        let mask = 1 << shift;
-        let boardmask = (self.moves_made & 1) << shift;
+    /// sets the next available bit at `row` and `col`
+    fn set_next_available(&mut self, col: u8) {
+        let shift = col * (HEIGHT + 1);
 
-        self.board ^= boardmask;
-        self.total_board ^= mask;
+        // mask for the bottom of the column. If we add
+        // this to total_board, then we can get the location of the
+        // next available slot in the column.
+        let mask = 1 << shift;
+        let col_mask = COLUMN_MASK << shift;
+        let new_position = (self.total_board & col_mask) + mask;
+        self.total_board ^= new_position;
+
+        // (1 or 0) * new_position is faster than the if statement...
+        self.board ^= self.get_current_player() as u64 * new_position;
     }
 
     /// returns true if the bitboard is a winner.
@@ -228,12 +234,12 @@ impl Board {
 
     /// checks whether the entire board is entirely filled.
     pub fn is_filled(&self) -> bool {
-        self.total_board == PLAYABLE_REGION
+        self.moves_made == SIZE
     }
 
     /// obtains the number of moves made.
     pub fn moves_played(&self) -> u8 {
-        self.total_board.count_ones() as u8
+        self.moves_made as u8
     }
 
     /// obtains the unique position key. This is calculated by
@@ -265,19 +271,16 @@ impl Board {
     /// 0 0 0 0 0 0 0
     /// 0 0 0 1 0 0 0
     ///
-    /// We shift everything up by 1 to get the bounding limits
+    /// We shift the top bound up by 1 to get the bounding limits
     /// of the playable board. This works because a slot of `0` below the
     /// bounding limits implies that the slot is occupied by the first player,
     /// while zeroes above mean empty.
     pub fn get_unique_position_key(&self) -> u64 {
-        // shifts everything up by 1, and fills in the bottom row with 1
-        let shifted_total = (self.total_board << 1) | BOTTOM_ROW_MASK;
-        let bounding_limits = shifted_total ^ self.total_board;
-
+        let bounding_limits = self.total_board + BOTTOM_ROW_MASK;
         bounding_limits ^ self.board
     }
 
-    pub fn get_num_moves_played(&self) -> u64 {
+    pub fn get_num_moves_played(&self) -> u8 {
         self.moves_made
     }
 
@@ -288,17 +291,7 @@ impl Board {
             self.is_filled()
     }
 
-    fn get_next_player_board(&self) -> u64 {
-        let next_player = self.moves_made & 1;
-        if next_player == 0 {
-            self.board ^ self.total_board
-        }
-        else {
-            self.board
-        }
-    }
-
-    fn get_current_player(&self) -> u64 {
+    fn get_current_player(&self) -> u8 {
         self.moves_made & 1
     }
 }

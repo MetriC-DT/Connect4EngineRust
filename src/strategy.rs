@@ -32,8 +32,8 @@ impl Explorer {
         Self { board, nodes_explored }
     }
 
-    pub fn change_board(&mut self, board: Board) {
-        self.board = board;
+    pub fn change_board(&mut self, board: &Board) {
+        self.board = *board;
     }
 
     pub fn strategy(&mut self) -> MoveEvalPair {
@@ -54,27 +54,27 @@ impl Explorer {
         // increment nodes searched.
         self.nodes_explored += 1;
 
-        let mut p = MoveEvalPair::new(u8::MAX, i8::MIN);
-        let current_board = self.board.clone();
+        let mut orig_board_copy = self.board;
 
         // checks if game ends in one move
         for col in self.board.get_valid_moves() {
-            self.nodes_explored += 1;
-            self.board.add_unchecked(col);
-            if let Some(val) = self.game_over_eval() {
-                p.set_move(col);
-                p.set_eval(val * color);
-                self.change_board(current_board);
-                return p;
+            orig_board_copy.add_unchecked(col);
+            if let Some(val) = Explorer::game_over_eval(&orig_board_copy) {
+                return MoveEvalPair::new(col, val * color);
             }
-            self.change_board(current_board);
+            orig_board_copy = self.board;
         }
+
+        // evaluation pair to be returned
+        let mut p = MoveEvalPair::new(u8::MAX, i8::MIN);
 
         // obtains the valid moves
         for m in self.board.get_valid_moves() {
             self.board.add_unchecked(m);
             let pair = self.negamax(-b, -a, -color);
-            self.change_board(current_board);
+
+            // revert back to original position
+            self.change_board(&orig_board_copy);
 
             let eval_val = -pair.get_eval();
 
@@ -94,20 +94,20 @@ impl Explorer {
     
     /// returns None if not game over. Otherwise, will
     /// return the evaluation of the board
-    pub fn game_over_eval(&self) -> Option<i8> {
-        let moves_until_end = SIZE - self.board.moves_played();
+    pub fn game_over_eval(board: &Board) -> Option<i8> {
+        let moves_until_end = SIZE - board.moves_played();
         // if first player wins, return the positive
-        if self.board.is_first_player_win() {
+        if board.is_first_player_win() {
             Some(MAX_SCORE + moves_until_end as i8)
         }
 
         // if second player wins, return negative
-        else if self.board.is_second_player_win() {
+        else if board.is_second_player_win() {
             Some(-(MAX_SCORE + moves_until_end as i8))
         }
 
         // if draw game
-        else if self.board.is_filled() {
+        else if board.is_filled() {
             Some(TIE_SCORE)
         }
 

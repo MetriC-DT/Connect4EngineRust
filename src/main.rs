@@ -9,7 +9,7 @@ fn main() -> io::Result<()> {
     let mut totaltime = 0;
 
     for line in reader.lines() {
-        explorer.change_board(Board::new_position(&line?));
+        explorer.change_board(&Board::new_position(&line?));
         let start_time = Instant::now();
         let evaluation = explorer.strategy();
         let delta = start_time.elapsed().as_micros();
