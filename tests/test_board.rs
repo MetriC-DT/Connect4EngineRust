@@ -15,35 +15,6 @@ fn test_board_add() {
 }
 
 #[test]
-fn test_undo_1() {
-    let mut b = Board::new();
-    let col = 2;
-
-    assert!(b.add(col).is_ok());
-    assert_eq!(b.get_height(col), 1);
-
-    b.undo();
-    assert_eq!(b.get_height(col), 0);
-}
-
-#[test]
-fn test_undo_2() {
-    let mut b = Board::new();
-    let col = 3;
-    for i in 0..HEIGHT {
-        assert_eq!(b.get_height(col), i);
-        assert!(b.add(col).is_ok());
-    }
-
-    for i in 0..HEIGHT {
-        assert_eq!(b.get_height(col), HEIGHT - i);
-        b.undo();
-    }
-
-    assert_eq!(b.get_height(col), 0);
-}
-
-#[test]
 fn test_win_vertical() {
     let mut b = Board::new();
     b.add(3).unwrap();

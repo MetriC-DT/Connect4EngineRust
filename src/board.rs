@@ -42,12 +42,11 @@ pub const BOTTOM_ROW_MASK: u64 = 0b000000100000010000001000000100000010000001000
 ///
 /// The `board` variable describes the bitboard for player 1. In order
 /// to obtain the bitboard for player 0, we can XOR it with `total_board`.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Board {
     board: u64,
     total_board: u64,
-    history: Vec<u8>,
-    nextplayer: bool,
+    moves_made: u64
 }
 
 impl fmt::Display for Board {
@@ -83,9 +82,22 @@ impl Board {
         Self {
             board: 0,
             total_board: 0,
-            history: Vec::with_capacity(SIZE as usize),
-            nextplayer: false,
+            moves_made: 0,
         }
+    }
+
+    /// initializes board with given position.
+    pub fn new_position(position: &str) -> Self {
+        let mut board = Board::new();
+        for c in position.chars() {
+            if let Some(col) = c.to_digit(10) {
+                board.add(col as u8 - 1).unwrap();
+            }
+            else {
+                break;
+            }
+        }
+        board
     }
 
     /// Obtains the height of the specified column.
@@ -117,7 +129,7 @@ impl Board {
     /// returns `true` if a new piece can be added into 
     /// the specified column.
     fn can_add(&self, col: u8) -> bool {
-        !Board::col_is_occupied(self.total_board, col)
+        !Board::col_is_occupied(self.total_board, col) && col < WIDTH
     }
 
     pub fn col_is_occupied(board: u64, col: u8) -> bool {
@@ -147,31 +159,14 @@ impl Board {
         self.flip(row, col);
 
         // adds to history of moves
-        self.history.push(col);
-
-        // switch to next player to play
-        self.nextplayer = !self.nextplayer;
-    }
-
-    /// undoes the last move, if possible.
-    pub fn undo(&mut self) {
-        // pops latest entry from history
-        if let Some(col) = self.history.pop() {
-            let row = self.get_height(col) - 1;
-
-            // sets the player to the previous player
-            self.nextplayer = !self.nextplayer;
-
-            // deletes the previous player's move
-            self.flip(row, col);
-        }
+        self.moves_made += 1;
     }
 
     /// flips the bit set at `row` and `col`
     fn flip(&mut self, row: u8, col: u8) {
         let shift = row + col * (HEIGHT + 1);
         let mask = 1 << shift;
-        let boardmask = (self.nextplayer as u64) << shift;
+        let boardmask = (self.moves_made & 1) << shift;
 
         self.board ^= boardmask;
         self.total_board ^= mask;
@@ -236,9 +231,9 @@ impl Board {
         self.total_board == PLAYABLE_REGION
     }
 
-    /// obtains the next player (player to make the move next).
-    pub fn get_next_player(&self) -> bool {
-        self.nextplayer
+    /// obtains the number of moves made.
+    pub fn moves_played(&self) -> u8 {
+        self.total_board.count_ones() as u8
     }
 
     /// obtains the unique position key. This is calculated by
@@ -280,5 +275,16 @@ impl Board {
         let bounding_limits = shifted_total ^ self.total_board;
 
         bounding_limits ^ self.board
+    }
+
+    pub fn get_num_moves_played(&self) -> u64 {
+        self.moves_made
+    }
+
+    /// returns true if game is over, false otherwise.
+    pub fn is_game_over(&self) -> bool {
+        self.is_first_player_win() ||
+            self.is_second_player_win() ||
+            self.is_filled()
     }
 }
