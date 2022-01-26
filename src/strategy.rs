@@ -49,17 +49,26 @@ impl Explorer {
         }
     }
 
+    /// TODO - only return evaluation.
     fn negamax(&mut self, mut a: i8, b: i8, color: i8) -> MoveEvalPair {
         // increment nodes searched.
         self.nodes_explored += 1;
 
-        // if game over, get the evaluation and terminate
-        if let Some(val) = self.game_over_eval() {
-            return MoveEvalPair::new(u8::MAX, val * color);
-        }
-
         let mut p = MoveEvalPair::new(u8::MAX, i8::MIN);
         let current_board = self.board.clone();
+
+        // checks if game ends in one move
+        for col in self.board.get_valid_moves() {
+            self.nodes_explored += 1;
+            self.board.add_unchecked(col);
+            if let Some(val) = self.game_over_eval() {
+                p.set_move(col);
+                p.set_eval(val * color);
+                self.change_board(current_board);
+                return p;
+            }
+            self.change_board(current_board);
+        }
 
         // obtains the valid moves
         for m in self.board.get_valid_moves() {

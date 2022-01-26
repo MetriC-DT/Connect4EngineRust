@@ -128,7 +128,7 @@ impl Board {
 
     /// returns `true` if a new piece can be added into 
     /// the specified column.
-    fn can_add(&self, col: u8) -> bool {
+    pub fn can_add(&self, col: u8) -> bool {
         !Board::col_is_occupied(self.total_board, col) && col < WIDTH
     }
 
@@ -286,5 +286,19 @@ impl Board {
         self.is_first_player_win() ||
             self.is_second_player_win() ||
             self.is_filled()
+    }
+
+    fn get_next_player_board(&self) -> u64 {
+        let next_player = self.moves_made & 1;
+        if next_player == 0 {
+            self.board ^ self.total_board
+        }
+        else {
+            self.board
+        }
+    }
+
+    fn get_current_player(&self) -> u64 {
+        self.moves_made & 1
     }
 }
