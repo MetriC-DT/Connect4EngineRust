@@ -1,8 +1,9 @@
 use connect4engine::{strategy::Explorer, board::Board};
-use std::{fs, io::{BufRead, self, BufReader}, time::Instant};
+use std::{fs, io::{BufRead, self, BufReader}, time::Instant, env};
 
 fn main() -> io::Result<()> {
-    let file = fs::File::open("Test_L2_R1.txt")?;
+    let args: Vec<String> = env::args().collect();
+    let file = fs::File::open(args[1].as_str())?;
     let reader = BufReader::new(file);
     let mut explorer = Explorer::new();
 
@@ -17,7 +18,7 @@ fn main() -> io::Result<()> {
         let delta = start_time.elapsed().as_micros();
         totaltime += delta;
 
-        println!("{}\t{}\t{}us", evaluation.get_eval(), explorer.get_nodes_explored(), delta);
+        println!("{}\t{}\t{}us", explorer.get_nodes_explored(), evaluation.get_eval(), delta);
     }
 
     let nodecount = explorer.get_nodes_explored();
