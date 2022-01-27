@@ -37,20 +37,19 @@ impl Explorer {
     }
 
     pub fn strategy(&mut self) -> MoveEvalPair {
-        let color = if self.board.get_num_moves_played() & 1 == 0 {1} else {-1};
         let alpha = -MAX_SCORE;
         let beta = MAX_SCORE;
 
-        if color == 1 {
-            self.negamax(alpha, beta, color)
+        if self.board.get_current_player() == 0 {
+            self.negamax(alpha, beta)
         }
         else {
-            self.negamax(-beta, -alpha, color)
+            self.negamax(-beta, -alpha)
         }
     }
 
     /// TODO - only return evaluation.
-    fn negamax(&mut self, mut a: i8, b: i8, color: i8) -> MoveEvalPair {
+    fn negamax(&mut self, mut a: i8, b: i8) -> MoveEvalPair {
         // increment nodes searched.
         self.nodes_explored += 1;
 
@@ -60,7 +59,7 @@ impl Explorer {
         for col in self.board.get_valid_moves() {
             orig_board_copy.add_unchecked(col);
             if let Some(val) = Explorer::game_over_eval(&orig_board_copy) {
-                return MoveEvalPair::new(col, val * color);
+                return MoveEvalPair::new(col, val);
             }
             orig_board_copy = self.board;
         }
@@ -71,7 +70,7 @@ impl Explorer {
         // obtains the valid moves
         for m in self.board.get_valid_moves() {
             self.board.add_unchecked(m);
-            let pair = self.negamax(-b, -a, -color);
+            let pair = self.negamax(-b, -a);
 
             // revert back to original position
             self.change_board(&orig_board_copy);
@@ -91,19 +90,15 @@ impl Explorer {
 
         p
     }
-    
+
     /// returns None if not game over. Otherwise, will
     /// return the evaluation of the board
     pub fn game_over_eval(board: &Board) -> Option<i8> {
         let moves_until_end = SIZE - board.moves_played();
-        // if first player wins, return the positive
-        if board.is_first_player_win() {
+        // if first or second player wins, return the maximum score.
+        if board.is_first_player_win() ||
+            board.is_second_player_win() {
             Some(MAX_SCORE + moves_until_end as i8)
-        }
-
-        // if second player wins, return negative
-        else if board.is_second_player_win() {
-            Some(-(MAX_SCORE + moves_until_end as i8))
         }
 
         // if draw game

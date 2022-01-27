@@ -239,7 +239,7 @@ impl Board {
 
     /// obtains the number of moves made.
     pub fn moves_played(&self) -> u8 {
-        self.moves_made as u8
+        self.moves_made
     }
 
     /// obtains the unique position key. This is calculated by
@@ -291,7 +291,8 @@ impl Board {
             self.is_filled()
     }
 
-    fn get_current_player(&self) -> u8 {
+    /// obtains the current player ID (either 0 or 1).
+    pub fn get_current_player(&self) -> u8 {
         self.moves_made & 1
     }
 }
