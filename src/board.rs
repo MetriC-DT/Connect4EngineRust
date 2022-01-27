@@ -276,8 +276,14 @@ impl Board {
     /// bounding limits implies that the slot is occupied by the first player,
     /// while zeroes above mean empty.
     pub fn get_unique_position_key(&self) -> u64 {
-        let bounding_limits = self.total_board + BOTTOM_ROW_MASK;
-        bounding_limits ^ self.board
+        // OLD WAY
+        // let bounding_limits = self.total_board + BOTTOM_ROW_MASK;
+        // bounding_limits ^ self.board
+        
+        // the old way had me adding BOTTOM_ROW_MASK in the calculation for
+        // unique position key. This is just a wasted instruction and can be
+        // removed.
+        self.total_board + self.board
     }
 
     pub fn get_num_moves_played(&self) -> u8 {

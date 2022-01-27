@@ -38,6 +38,27 @@ fn test_endgame_1() {
 fn test_endgame_2() {
     // player 2 forced win in 13 moves
     let line = "16357157437461355316457465722";
+    let (turncount, board) = run_game(line);
+
+    // player 2 forced win in 13 moves
+    assert!(board.is_second_player_win());
+    assert!(!board.is_first_player_win());
+    assert_eq!(turncount, 13);
+}
+
+#[test]
+fn test_endgame_3() {
+    let line = "662222576343651642712157";
+    let (turncount, board) = run_game(line);
+
+    // player 2 forced win in 13 moves
+    assert!(!board.is_second_player_win());
+    assert!(board.is_first_player_win());
+    assert_eq!(turncount, 3);
+}
+
+/// runs the game, returning (num_turns, resulting board)
+fn run_game(line: &str) -> (usize, Board) {
     let board = Board::new_position(line);
     let mut explorer = Explorer::with_board(board);
     let mut turncount = 0;
@@ -48,8 +69,5 @@ fn test_endgame_2() {
         turncount += 1;
     }
 
-    // player 2 forced win in 13 moves
-    assert!(explorer.board.is_second_player_win());
-    assert!(!explorer.board.is_first_player_win());
-    assert_eq!(turncount, 13);
+    (turncount, explorer.board)
 }

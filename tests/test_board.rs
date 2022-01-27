@@ -1,4 +1,4 @@
-use connect4engine::board::{HEIGHT, Board, WIDTH, BOTTOM_ROW_MASK};
+use connect4engine::board::{HEIGHT, Board, WIDTH};
 
 #[test]
 fn test_board_add() {
@@ -100,17 +100,20 @@ fn test_not_filled() {
 #[test]
 fn test_unique_position_key() {
     let mut b = Board::new();
-    assert_eq!(b.get_unique_position_key(), BOTTOM_ROW_MASK);
+    let moves = "333336411113255454551522644040160606602022";
+    let mut seen_keys = Vec::new();
 
-    let game_string = "00000111112223444444";
-    for c in game_string.chars() {
-        let col = c.to_digit(10).unwrap();
+    // simulates a game to check if keys collide
+    for col in moves.chars() {
+        let unique_position_key = b.get_unique_position_key();
+        assert!(!seen_keys.contains(&unique_position_key));
+        seen_keys.push(unique_position_key);
+
+        let col = col.to_digit(10).unwrap();
         b.add(col as u8).unwrap();
     }
 
-    let new_position_1 = 0b1000000111010100000011000101001101010101010;
-    assert_eq!(new_position_1, b.get_unique_position_key());
-
-    b.add(3).unwrap();
-    assert_ne!(new_position_1, b.get_unique_position_key());
+    // checks last one
+    let unique_position_key = b.get_unique_position_key();
+    assert!(!seen_keys.contains(&unique_position_key));
 }

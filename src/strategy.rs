@@ -1,10 +1,10 @@
 use crate::{board::{Board, SIZE}, moves::MoveEvalPair};
 
-pub const MAX_SCORE: i8 = 50;
+pub const MAX_SCORE: i8 = SIZE as i8;
 pub const TIE_SCORE: i8 = 0;
-pub const MIN_DEPTH: i8 = SIZE as i8;
 
 // Evaluation table for number of possible 4-in-a-rows
+/*
 pub const EVALTABLE: [i16; SIZE as usize] = [
     3, 4, 5,  7,  5,  4, 3,
     4, 6, 8,  10, 8,  6, 4,
@@ -13,6 +13,7 @@ pub const EVALTABLE: [i16; SIZE as usize] = [
     4, 6, 8,  10, 8,  6, 4,
     3, 4, 5,  7,  5,  4, 3
 ];
+*/
 
 #[derive(Debug)]
 pub struct Explorer {
@@ -94,11 +95,14 @@ impl Explorer {
     /// returns None if not game over. Otherwise, will
     /// return the evaluation of the board
     pub fn game_over_eval(board: &Board) -> Option<i8> {
-        let moves_until_end = SIZE - board.moves_played();
         // if first or second player wins, return the maximum score.
-        if board.is_first_player_win() ||
-            board.is_second_player_win() {
-            Some(MAX_SCORE + moves_until_end as i8)
+        if board.is_second_player_win() ||
+            board.is_first_player_win() {
+
+            // Added size here so we can select the move that finishes the game 
+            // the quickest. score >= 0 so that we can exceed the MAX_SCORE limit.
+            let score = SIZE - board.moves_played();
+            Some(MAX_SCORE + score as i8)
         }
 
         // if draw game
