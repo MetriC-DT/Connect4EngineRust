@@ -22,7 +22,7 @@ fn test_endgame_1() {
 
     // runs until game is over.
 	while !explorer.board.is_game_over() {
-		let col = explorer.strategy().get_move();
+		let col = explorer.solve().unwrap().get_move();
         explorer.board.add(col).unwrap();
 		turncount += 1;
 	}
@@ -30,8 +30,6 @@ fn test_endgame_1() {
     assert!(explorer.board.is_first_player_win());
     assert!(!explorer.board.is_second_player_win());
     assert_eq!(turncount, moves_until_end);
-
-    println!("{}", explorer.get_nodes_explored())
 }
 
 #[test]
@@ -51,9 +49,9 @@ fn test_endgame_3() {
     let line = "662222576343651642712157";
     let (turncount, board) = run_game(line);
 
-    // player 2 forced win in 13 moves
-    assert!(!board.is_second_player_win());
+    // player 1 forced win in 3 moves
     assert!(board.is_first_player_win());
+    assert!(!board.is_second_player_win());
     assert_eq!(turncount, 3);
 }
 
@@ -64,7 +62,7 @@ fn run_game(line: &str) -> (usize, Board) {
     let mut turncount = 0;
 
     while !explorer.board.is_game_over() {
-        let col = explorer.strategy().get_move();
+        let col = explorer.solve().unwrap().get_move();
         explorer.board.add(col).unwrap();
         turncount += 1;
     }

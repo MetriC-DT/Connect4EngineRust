@@ -37,20 +37,25 @@ impl Explorer {
         self.board = *board;
     }
 
-    pub fn strategy(&mut self) -> MoveEvalPair {
-        let alpha = -MAX_SCORE;
-        let beta = MAX_SCORE;
+    pub fn solve(&mut self) -> Option<MoveEvalPair> {
+        // if given game is already over, do not run search
+        if self.board.is_game_over() {
+            return None;
+        }
 
-        if self.board.get_current_player() == 0 {
-            self.negamax(alpha, beta)
-        }
-        else {
-            self.negamax(-beta, -alpha)
-        }
+        // game is guaranteed to not be over. Therefore, we are
+        // allowed to use the `moves` struct.
+        let a = -MAX_SCORE;
+        let b = MAX_SCORE;
+
+        Some(self.negamax_eval_pair(a, b))
     }
 
-    /// TODO - only return evaluation.
-    fn negamax(&mut self, mut a: i8, b: i8) -> MoveEvalPair {
+
+    /// A CARBON COPY OF THE `negamax` function.
+    /// The only difference is that this one generates a move as well
+    /// as an evaluation.
+    fn negamax_eval_pair(&mut self, mut a: i8, b: i8) -> MoveEvalPair {
         // increment nodes searched.
         self.nodes_explored += 1;
 
@@ -59,37 +64,88 @@ impl Explorer {
         // checks if game ends in one move
         for col in self.board.get_valid_moves() {
             orig_board_copy.add_unchecked(col);
+
             if let Some(val) = Explorer::game_over_eval(&orig_board_copy) {
+                // README: Returning val instantly like this only works when
+                // the the player cannot hope to play another move that ends
+                // the game with a better result. For connect4, on the same move,
+                // the player cannot have a move that results in a draw and another
+                // that results in him winning. Therefore, the best and only move that
+                // ends the game right away is the current one.
                 return MoveEvalPair::new(col, val);
             }
             orig_board_copy = self.board;
         }
 
-        // evaluation pair to be returned
-        let mut p = MoveEvalPair::new(u8::MAX, i8::MIN);
+        // evaluation value of a position
+        let mut value = i8::MIN;
+        let mut mv = u8::MAX;
 
-        // obtains the valid moves
         for m in self.board.get_valid_moves() {
             self.board.add_unchecked(m);
-            let pair = self.negamax(-b, -a);
+
+            let eval_val = -self.negamax(-b, -a);
 
             // revert back to original position
             self.change_board(&orig_board_copy);
 
-            let eval_val = -pair.get_eval();
-
-            if eval_val > p.get_eval() {
-                p.set_move(m);
-                p.set_eval(eval_val);
+            if eval_val > value {
+                value = eval_val;
+                mv = m;
             }
 
-            a = i8::max(a, p.get_eval());
+            a = i8::max(a, value);
             if a >= b {
                 break;
             }
         }
 
-        p
+        MoveEvalPair::new(mv, value)
+    }
+
+
+    fn negamax(&mut self, mut a: i8, b: i8) -> i8 {
+        // increment nodes searched.
+        self.nodes_explored += 1;
+
+        let mut orig_board_copy = self.board;
+
+        // checks if game ends in one move
+        for col in self.board.get_valid_moves() {
+            orig_board_copy.add_unchecked(col);
+
+            if let Some(val) = Explorer::game_over_eval(&orig_board_copy) {
+                // README: Returning val instantly like this only works when
+                // the the player cannot hope to play another move that ends
+                // the game with a better result. For connect4, on the same move,
+                // the player cannot have a move that results in a draw and another
+                // that results in him winning. Therefore, the best and only move that
+                // ends the game right away is the current one.
+                return val;
+            }
+            orig_board_copy = self.board;
+        }
+
+        // evaluation value of a position
+        let mut value = i8::MIN;
+
+        for m in self.board.get_valid_moves() {
+            self.board.add_unchecked(m);
+
+            let eval_val = -self.negamax(-b, -a);
+
+            // revert back to original position
+            self.change_board(&orig_board_copy);
+
+            value = i8::max(value, eval_val);
+
+            a = i8::max(a, value);
+            if a >= b {
+                break;
+            }
+        }
+
+        value
     }
 
     /// returns None if not game over. Otherwise, will

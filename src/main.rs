@@ -14,11 +14,11 @@ fn main() -> io::Result<()> {
         count += 1;
         explorer.change_board(&Board::new_position(&line?));
         let start_time = Instant::now();
-        let evaluation = explorer.strategy();
+        let evaluation = explorer.solve();
         let delta = start_time.elapsed().as_micros();
         totaltime += delta;
 
-        println!("{}\t{}\t{}us", explorer.get_nodes_explored(), evaluation.get_eval(), delta);
+        println!("{}\t{}\t{}us", explorer.get_nodes_explored(), evaluation.unwrap().get_eval(), delta);
     }
 
     let nodecount = explorer.get_nodes_explored();
