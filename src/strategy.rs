@@ -1,4 +1,4 @@
-use crate::{board::{Board, SIZE}, moves::MoveEvalPair};
+use crate::{board::{Board, SIZE}, moves::MoveEvalPair, transpositiontable::TranspositionTable};
 
 pub const MAX_SCORE: i8 = SIZE as i8;
 pub const TIE_SCORE: i8 = 0;
@@ -19,18 +19,21 @@ pub const EVALTABLE: [i16; SIZE as usize] = [
 pub struct Explorer {
     pub board: Board,
     nodes_explored: usize,
+    transpositiontable: TranspositionTable
 }
 
 impl Explorer {
     pub fn new() -> Self {
         let board = Board::new();
         let nodes_explored = 0;
-        Self { board, nodes_explored }
+        let transpositiontable = TranspositionTable::new();
+        Self { board, nodes_explored, transpositiontable }
     }
 
     pub fn with_board(board: Board) -> Self {
         let nodes_explored = 0;
-        Self { board, nodes_explored }
+        let transpositiontable = TranspositionTable::new();
+        Self { board, nodes_explored, transpositiontable }
     }
 
     pub fn change_board(&mut self, board: &Board) {
@@ -44,7 +47,7 @@ impl Explorer {
         }
 
         // game is guaranteed to not be over. Therefore, we are
-        // allowed to use the `moves` struct.
+        // allowed to call negamax_eval_pair.
         let a = -MAX_SCORE;
         let b = MAX_SCORE;
 
@@ -52,9 +55,10 @@ impl Explorer {
     }
 
 
-    /// A CARBON COPY OF THE `negamax` function.
-    /// The only difference is that this one generates a move as well
-    /// as an evaluation.
+    /// A `negamax` function that also generates a move in addition
+    /// to the evaluation of the position.
+    ///
+    /// ASSUMES the game is not yet over.
     fn negamax_eval_pair(&mut self, mut a: i8, b: i8) -> MoveEvalPair {
         // increment nodes searched.
         self.nodes_explored += 1;
@@ -84,7 +88,14 @@ impl Explorer {
         for m in self.board.get_valid_moves() {
             self.board.add_unchecked(m);
 
-            let eval_val = -self.negamax(-b, -a);
+            let eval_val;
+            if let Some(eval) = self.transpositiontable.get(&self.board) {
+                eval_val = eval;
+            }
+            else {
+                eval_val = -self.negamax_eval_pair(-b, -a).get_eval();
+                self.transpositiontable.insert(&self.board, eval_val);
+            }
 
             // revert back to original position
             self.change_board(&orig_board_copy);
@@ -101,51 +112,6 @@ impl Explorer {
         }
 
         MoveEvalPair::new(mv, value)
-    }
-
-
-    fn negamax(&mut self, mut a: i8, b: i8) -> i8 {
-        // increment nodes searched.
-        self.nodes_explored += 1;
-
-        let mut orig_board_copy = self.board;
-
-        // checks if game ends in one move
-        for col in self.board.get_valid_moves() {
-            orig_board_copy.add_unchecked(col);
-
-            if let Some(val) = Explorer::game_over_eval(&orig_board_copy) {
-                // README: Returning val instantly like this only works when
-                // the the player cannot hope to play another move that ends
-                // the game with a better result. For connect4, on the same move,
-                // the player cannot have a move that results in a draw and another
-                // that results in him winning. Therefore, the best and only move that
-                // ends the game right away is the current one.
-                return val;
-            }
-            orig_board_copy = self.board;
-        }
-
-        // evaluation value of a position
-        let mut value = i8::MIN;
-
-        for m in self.board.get_valid_moves() {
-            self.board.add_unchecked(m);
-
-            let eval_val = -self.negamax(-b, -a);
-
-            // revert back to original position
-            self.change_board(&orig_board_copy);
-
-            value = i8::max(value, eval_val);
-
-            a = i8::max(a, value);
-            if a >= b {
-                break;
-            }
-        }
-
-        value
     }
 
     /// returns None if not game over. Otherwise, will
