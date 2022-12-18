@@ -81,6 +81,8 @@ impl Explorer {
             orig_board_copy = self.board;
         }
 
+        // TODO - check if move is in openings database.
+
         // evaluation value of a position
         let mut value = i8::MIN;
         let mut mv = u8::MAX;
