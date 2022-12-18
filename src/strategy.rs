@@ -47,8 +47,9 @@ impl Explorer {
         else {
             // game is guaranteed to not be over. Therefore, we are
             // allowed to call negamax_eval_pair.
-            let a = -MAX_SCORE;
-            let b = MAX_SCORE;
+            let starter = MAX_SCORE + 1;
+            let a = -starter;
+            let b = starter;
 
             self.negamax_eval_pair(a, b)
         }
@@ -64,6 +65,7 @@ impl Explorer {
         self.nodes_explored += 1;
 
         let mut orig_board_copy = self.board.clone();
+        let mut alpha = a;
 
         // quick endgame lookahead. checks if game ends in one move.
         for col in self.board.get_valid_moves() {
@@ -108,8 +110,8 @@ impl Explorer {
                 mv = m;
             }
 
-            let max_a = i8::max(a, value);
-            if max_a >= b {
+            alpha = i8::max(alpha, value);
+            if alpha >= b {
                 break;
             }
         }
@@ -120,16 +122,11 @@ impl Explorer {
     /// returns None if not game over. Otherwise, will
     /// return the evaluation of the board
     pub fn game_over_eval(board: &Board) -> Option<i8> {
-        if board.is_first_player_win() {
+        if board.is_player_win() {
             // Added size here so we can select the move that finishes the game 
             // the quickest.
             let score: i8 = MAX_SCORE - board.moves_played() as i8;
-            return Some(score);
-        }
-
-        else if board.is_second_player_win() {
-            let score: i8 = MAX_SCORE - board.moves_played() as i8;
-            Some(-score)
+            return Some(board.get_prev_player_signed() * score);
         }
 
         // if draw game

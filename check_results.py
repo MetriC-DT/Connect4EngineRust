@@ -27,3 +27,4 @@ if __name__ == "__main__":
     outputfile = f'test_outputs/{basename}.log'
     os.system(f'cargo run --release {file_to_check} > {outputfile}')
     validate(file_to_check, outputfile)
+    os.system(f'tail -n5 test_outputs/{basename}.log')

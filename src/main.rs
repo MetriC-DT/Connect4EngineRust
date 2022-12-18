@@ -1,5 +1,6 @@
 use connect4engine::{strategy::Explorer, board::Board};
 use std::{fs, io::{BufRead, self, BufReader}, time::Instant, env};
+use std::io::{stdout, Write};
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -31,7 +32,9 @@ fn test_files(filename: &str) -> io::Result<()> {
                  &linestr.split(' ').next().unwrap(),
                  evaluation.get_eval(),
                  explorer.get_nodes_explored() - prev_nodecount,
-                 delta)
+                 delta);
+
+        stdout().flush()?
     }
 
     let nodecount = explorer.get_nodes_explored();
@@ -40,7 +43,7 @@ fn test_files(filename: &str) -> io::Result<()> {
     println!("time elapsed:        {}us", totaltime);
     println!("positions evaluated: {}", nodecount);
     println!("speed:               {} Kpos/us", nodecount as f32 / totaltime as f32 * 1000.0);
-    println!("Avg time:            {} ms", totaltime as f32 / count as f32);
+    println!("Avg time:            {} us", totaltime as f32 / count as f32);
     println!("Avg nodes:           {}", nodecount as f32 / count as f32);
 
     Ok(())

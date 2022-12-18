@@ -232,6 +232,10 @@ impl Board {
         Board::is_win(p2board)
     }
 
+    pub fn is_player_win(&self) -> bool {
+        self.is_first_player_win() || self.is_second_player_win()
+    }
+
     /// puts the valid moves into the given moves_vec
     pub fn get_valid_moves(&self) -> Moves {
         Moves::new(self.total_board)
@@ -311,6 +315,13 @@ impl Board {
     pub fn get_current_player_signed(&self) -> i8 {
         let neg_player = -(self.get_current_player() as i8);
         let signed_player = (neg_player + 1) | neg_player;
+        signed_player
+    }
+
+    /// obtains the previous player as a signed number (1 for player 0, -1 for player 1)
+    pub fn get_prev_player_signed(&self) -> i8 {
+        let player = self.get_current_player() as i8;
+        let signed_player = (player - 1) | player;
         signed_player
     }
 }
