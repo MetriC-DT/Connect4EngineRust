@@ -1,4 +1,4 @@
-import sys
+import sys, os
 
 def validate(file1, file2):
     with open(file1, 'r') as f:
@@ -20,5 +20,9 @@ def validate(file1, file2):
     print("OK")
 
 if __name__ == "__main__":
-    f1, f2 = sys.argv[1], sys.argv[2]
-    validate(f1, f2)
+    file_to_check = sys.argv[1]
+    os.makedirs(name='test_outputs', exist_ok=True)
+    basename = os.path.basename(file_to_check)
+    outputfile = f'test_outputs/{basename}.log'
+    os.system(f'cargo run {file_to_check} >> {outputfile}')
+    validate(file_to_check, outputfile)
