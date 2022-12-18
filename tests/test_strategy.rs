@@ -4,14 +4,12 @@ use connect4engine::{board::Board, strategy::Explorer};
 fn test_endgame_1() {
     // piece 1 will win in this line.
     let o_win_string = "44444752222436656566263375515127171771313";
-    let moves_played = 41;
     let (turncount, board) = run_game(o_win_string);
-
 
     assert!(board.is_first_player_win());
     assert!(!board.is_second_player_win());
     assert_eq!(0, turncount);
-    assert_eq!(board.moves_played(), moves_played);
+    assert_eq!(usize::from(board.moves_played()), o_win_string.len());
 }
 
 #[test]
@@ -44,7 +42,7 @@ fn run_game(line: &str) -> (usize, Board) {
     let mut turncount = 0;
 
     while !explorer.board.is_game_over() {
-        let col = explorer.solve().unwrap().get_move();
+        let col = explorer.solve().get_move();
         explorer.board.add(col).unwrap();
         turncount += 1;
     }

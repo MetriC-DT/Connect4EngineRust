@@ -2,14 +2,18 @@ import sys, os
 
 def validate(file1, file2):
     with open(file1, 'r') as f:
-        f1array = (int(line.split()[1]) for line in f.readlines())
+        f1array = ((line.split()[0], int(line.split()[1])) for line in f.readlines())
     
     with open(file2, 'r') as f:
-        f2array = (int(line.split()[1]) for line in f.readlines())
+        f2array = ((line.split()[0], int(line.split()[1])) for line in f.readlines())
 
-    for (a, b) in zip(f1array, f2array):
-        s = "{}\t{}\t{}\t{}".format(file1, a, b, file2)
+    for (f1, f2) in zip(f1array, f2array):
+        m1, a = f1
+        m2, b = f2
+        s = "{} {}\t{}\t{}\t{}".format(m1, file1, a, b, file2)
         print(s)
+        assert(m1 == m2)
+
         if a != 0 or b != 0:
             # make sure a and b have same signs if definite win
             assert(a * b > 0)

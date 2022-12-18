@@ -3,7 +3,12 @@ use std::{fs, io::{BufRead, self, BufReader}, time::Instant, env};
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
-    let file = fs::File::open(args[1].as_str())?;
+
+    test_files(args[1].as_str())
+}
+
+fn test_files(filename: &str) -> io::Result<()> {
+        let file = fs::File::open(filename)?;
     let reader = BufReader::new(file);
     let mut explorer = Explorer::new();
 
@@ -11,14 +16,15 @@ fn main() -> io::Result<()> {
     let mut count = 0;
 
     for line in reader.lines() {
+        let linestr = line?;
         count += 1;
-        explorer.change_board(&Board::new_position(&line?));
+        explorer.change_board(&Board::new_position(&linestr));
         let start_time = Instant::now();
         let evaluation = explorer.solve();
         let delta = start_time.elapsed().as_micros();
         totaltime += delta;
 
-        println!("{}\t{}\t{}us", explorer.get_nodes_explored(), evaluation.unwrap().get_eval(), delta);
+        println!("{}\t{}\t{}\t{}us", &linestr.split(' ').next().unwrap(), explorer.get_nodes_explored(), evaluation.get_eval(), delta);
     }
 
     let nodecount = explorer.get_nodes_explored();

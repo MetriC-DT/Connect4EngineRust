@@ -117,3 +117,23 @@ fn test_unique_position_key() {
     let unique_position_key = b.get_unique_position_key();
     assert!(!seen_keys.contains(&unique_position_key));
 }
+
+#[test]
+fn test_signed_player() {
+    let mut b = Board::new();
+    let moves = "333336411113255454551522644040160606602022";
+    for (i, col) in moves.chars().enumerate() {
+        let curr = b.get_current_player();
+        let scurr = b.get_current_player_signed();
+
+        assert_eq!(curr, i as u8 % 2);
+        match curr {
+            0 => assert_eq!(1, scurr),
+            1 => assert_eq!(-1, scurr),
+            _ => assert!(false) // fails
+        }
+
+        let col = col.to_digit(10).unwrap();
+        b.add(col as u8).unwrap();
+    }
+}

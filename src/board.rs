@@ -15,12 +15,12 @@ pub const SIZE: u8 = WIDTH * HEIGHT;
 pub const DIRECTION: [usize; 4] = [1, 6, 7, 8];
 
 /// bit representation of the playable board.
-pub const PLAYABLE_REGION: u64 = 0b0111111011111101111110111111011111101111110111111;
+pub const PLAYABLE_REGION: i64 = 0b0111111011111101111110111111011111101111110111111;
 
 /// mask for bottom row.
-pub const BOTTOM_ROW_MASK: u64 = 0b0000001000000100000010000001000000100000010000001;
+pub const BOTTOM_ROW_MASK: i64 = 0b0000001000000100000010000001000000100000010000001;
 
-pub const COLUMN_MASK: u64 = (1 << HEIGHT) - 1;
+pub const COLUMN_MASK: i64 = (1 << HEIGHT) - 1;
 
 /// Bitboard implementation of the Connect 4 Board.
 /// 
@@ -46,8 +46,8 @@ pub const COLUMN_MASK: u64 = (1 << HEIGHT) - 1;
 /// to obtain the bitboard for player 0, we can XOR it with `total_board`.
 #[derive(Debug, Clone, Copy)]
 pub struct Board {
-    board: u64,
-    total_board: u64,
+    board: i64,
+    total_board: i64,
     moves_made: u8
 }
 
@@ -80,6 +80,7 @@ impl Default for Board {
 }
 
 impl Board {
+    /// Creates a new board.
     pub fn new() -> Self {
         Self {
             board: 0,
@@ -89,6 +90,10 @@ impl Board {
     }
 
     /// initializes board with given position.
+    ///
+    /// The position string is a string that begins with all numbers [0-9]. The instance that a
+    /// non-numerical character is encountered, this function will end and stop adding any more
+    /// pieces to the board.
     pub fn new_position(position: &str) -> Self {
         let mut board = Board::new();
         for c in position.chars() {
@@ -106,7 +111,7 @@ impl Board {
     ///
     /// 0 <= col < WIDTH
     pub fn get_height(&self, col: u8) -> u8 {
-        let colmask: u64 = ((1 << HEIGHT) - 1) << (col * (HEIGHT + 1)) as u64;
+        let colmask: i64 = ((1 << HEIGHT) - 1) << (col * (HEIGHT + 1));
         (self.total_board & colmask).count_ones() as u8
     }
 
@@ -134,7 +139,7 @@ impl Board {
         !Board::col_is_occupied(self.total_board, col) && col < WIDTH
     }
 
-    pub fn col_is_occupied(board: u64, col: u8) -> bool {
+    pub fn col_is_occupied(board: i64, col: u8) -> bool {
         let top_bit = 1 << ((HEIGHT - 1) + col * (HEIGHT + 1));
         (board & top_bit) != 0
     }
@@ -162,11 +167,11 @@ impl Board {
         self.moves_made += 1;
     }
 
-    /// sets the next available bit at `row` and `col`
+    /// sets the next available bit at `col`
     fn set_next_available(&mut self, col: u8) {
         let shift = col * (HEIGHT + 1);
 
-        // mask for the bottom of the column. If we add
+        // mask for the bottom of the column `col`. If we add
         // this to total_board, then we can get the location of the
         // next available slot in the column.
         let mask = 1 << shift;
@@ -175,14 +180,14 @@ impl Board {
         self.total_board ^= new_position;
 
         // (1 or 0) * new_position is faster than the if statement...
-        self.board ^= self.get_current_player() as u64 * new_position;
+        self.board ^= -(self.get_current_player() as i64) & new_position;
     }
 
     /// returns true if the bitboard is a winner.
     ///
     /// We do not need an option for checking if this current player has lost
     /// because you cannot lose the game on the turn you played your move.
-    fn is_win(bitboard: u64) -> bool {
+    fn is_win(bitboard: i64) -> bool {
         for dir in DIRECTION {
             // checks two at a time for better efficiency.
             let bb = bitboard & (bitboard >> dir);
@@ -275,7 +280,7 @@ impl Board {
     /// of the playable board. This works because a slot of `0` below the
     /// bounding limits implies that the slot is occupied by the first player,
     /// while zeroes above mean empty.
-    pub fn get_unique_position_key(&self) -> u64 {
+    pub fn get_unique_position_key(&self) -> i64 {
         // OLD WAY
         // let bounding_limits = self.total_board + BOTTOM_ROW_MASK;
         // bounding_limits ^ self.board
@@ -300,5 +305,12 @@ impl Board {
     /// obtains the current player ID (either 0 or 1).
     pub fn get_current_player(&self) -> u8 {
         self.moves_made & 1
+    }
+
+    /// obtains the current player as a signed number (1 for player 0, -1 for player 1)
+    pub fn get_current_player_signed(&self) -> i8 {
+        let neg_player = -(self.get_current_player() as i8);
+        let signed_player = (neg_player + 1) | neg_player;
+        signed_player
     }
 }

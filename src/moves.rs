@@ -1,5 +1,6 @@
 use crate::board::{WIDTH, Board};
 
+pub const EMPTY_MOVE: u8 = u8::MAX;
 const DEFAULT_ORDER: [u8; WIDTH as usize] = [3, 2, 4, 1, 5, 0, 6];
 
 /// representation for the allowed moves on a player's turn.
@@ -10,13 +11,13 @@ const DEFAULT_ORDER: [u8; WIDTH as usize] = [3, 2, 4, 1, 5, 0, 6];
 /// AGAIN, MAKE SURE GAME HAS NOT BEEN COMPLETED YET!!!
 #[derive(Clone, Copy)]
 pub struct Moves {
-    board: u64,
+    total_board: i64,
     pointer: usize,
 }
 
 impl Moves {
-    pub fn new(bits: u64) -> Self {
-        Self { board: bits, pointer: 0 }
+    pub fn new(total_boards: i64) -> Self {
+        Self { total_board: total_boards, pointer: 0 }
     }
 }
 
@@ -28,7 +29,7 @@ impl Iterator for Moves {
         let i = self.pointer;
         for &col in &DEFAULT_ORDER[i..] {
             self.pointer += 1;
-            if !Board::col_is_occupied(self.board, col) {
+            if !Board::col_is_occupied(self.total_board, col) {
                 return Some(col);
             }
         }
