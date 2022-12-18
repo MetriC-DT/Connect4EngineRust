@@ -42,7 +42,7 @@ fn test_files(filename: &str) -> io::Result<()> {
     println!();
     println!("time elapsed:        {}us", totaltime);
     println!("positions evaluated: {}", nodecount);
-    println!("speed:               {} Kpos/us", nodecount as f32 / totaltime as f32 * 1000.0);
+    println!("speed:               {} Kpos/s", nodecount as f32 / totaltime as f32 * 1000.0);
     println!("Avg time:            {} us", totaltime as f32 / count as f32);
     println!("Avg nodes:           {}", nodecount as f32 / count as f32);
 

@@ -78,7 +78,9 @@ impl Explorer {
                 // the player cannot have a move that results in a draw and another
                 // that results in him winning. Therefore, the best and only move that
                 // ends the game right away is the current one.
-                let player_val = val * self.board.get_current_player_signed();
+
+                // let player_val = val * self.board.get_current_player_signed();
+                let player_val = val;
                 return MoveEvalPair::new(col, player_val);
             }
             orig_board_copy = self.board;
@@ -126,7 +128,8 @@ impl Explorer {
             // Added size here so we can select the move that finishes the game 
             // the quickest.
             let score: i8 = MAX_SCORE - board.moves_played() as i8;
-            return Some(board.get_prev_player_signed() * score);
+            // return Some(board.get_prev_player_signed() * score);
+            return Some(score);
         }
 
         // if draw game
