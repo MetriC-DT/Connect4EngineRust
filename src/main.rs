@@ -8,7 +8,7 @@ fn main() -> io::Result<()> {
 }
 
 fn test_files(filename: &str) -> io::Result<()> {
-        let file = fs::File::open(filename)?;
+    let file = fs::File::open(filename)?;
     let reader = BufReader::new(file);
     let mut explorer = Explorer::new();
 
@@ -19,22 +19,29 @@ fn test_files(filename: &str) -> io::Result<()> {
         let linestr = line?;
         count += 1;
         explorer.change_board(&Board::new_position(&linestr));
+        let prev_nodecount = explorer.get_nodes_explored();
+
+        // time the solve
         let start_time = Instant::now();
         let evaluation = explorer.solve();
         let delta = start_time.elapsed().as_micros();
         totaltime += delta;
 
-        println!("{}\t{}\t{}\t{}us", &linestr.split(' ').next().unwrap(), explorer.get_nodes_explored(), evaluation.get_eval(), delta);
+        println!("{}\t{}\t{}us\t{}",
+                 evaluation.get_eval(),
+                 explorer.get_nodes_explored() - prev_nodecount,
+                 delta,
+                 &linestr.split(' ').next().unwrap())
     }
 
     let nodecount = explorer.get_nodes_explored();
 
-    println!("\ntime elapsed: {}us\npositions evaluated: {}\nspeed: {} Kpos/s\nAvg time: {}us\nAvg Nodes: {}",
-             totaltime,
-             nodecount,
-             nodecount as f32 / totaltime as f32 * 1000.0,
-             totaltime as f32 / count as f32,
-             nodecount as f32 / count as f32);
+    println!();
+    println!("time elapsed:        {}us", totaltime);
+    println!("positions evaluated: {}", nodecount);
+    println!("speed:               {} Kpos/us", nodecount as f32 / totaltime as f32 * 1000.0);
+    println!("Avg time:            {} ms", totaltime as f32 / count as f32);
+    println!("Avg nodes:           {}", nodecount as f32 / count as f32);
 
     Ok(())
 }

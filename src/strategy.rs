@@ -41,12 +41,17 @@ impl Explorer {
     }
 
     pub fn solve(&mut self) -> MoveEvalPair {
-        // game is guaranteed to not be over. Therefore, we are
-        // allowed to call negamax_eval_pair.
-        let a = -MAX_SCORE;
-        let b = MAX_SCORE;
+        if let Some(eval) = Self::game_over_eval(&self.board) {
+            MoveEvalPair::new(EMPTY_MOVE, eval)
+        }
+        else {
+            // game is guaranteed to not be over. Therefore, we are
+            // allowed to call negamax_eval_pair.
+            let a = -MAX_SCORE;
+            let b = MAX_SCORE;
 
-        self.negamax_eval_pair(a, b)
+            self.negamax_eval_pair(a, b)
+        }
     }
 
 
@@ -54,15 +59,26 @@ impl Explorer {
     /// to the evaluation of the position.
     ///
     /// ASSUMES the game is not yet over.
-    fn negamax_eval_pair(&mut self, mut a: i8, b: i8) -> MoveEvalPair {
+    fn negamax_eval_pair(&mut self, a: i8, b: i8) -> MoveEvalPair {
         // increment nodes searched.
         self.nodes_explored += 1;
-        let orig_board_copy = self.board;
+        let mut orig_board_copy = self.board.clone();
 
-        // checks if the game has been won.
-        if let Some(val) = Self::game_over_eval(&self.board) {
-            let playerval = self.board.get_current_player_signed() * val;
-            return MoveEvalPair::new(EMPTY_MOVE, playerval);
+        // quick endgame lookahead. checks if game ends in one move.
+        for col in self.board.get_valid_moves() {
+            orig_board_copy.add_unchecked(col);
+
+            if let Some(val) = Explorer::game_over_eval(&orig_board_copy) {
+                // README: Returning val instantly like this only works when
+                // the the player cannot hope to play another move that ends
+                // the game with a better result. For connect4, on the same move,
+                // the player cannot have a move that results in a draw and another
+                // that results in him winning. Therefore, the best and only move that
+                // ends the game right away is the current one.
+                let player_val = val * self.board.get_current_player_signed();
+                return MoveEvalPair::new(col, player_val);
+            }
+            orig_board_copy = self.board;
         }
 
         // TODO - check if move is in openings database.
@@ -91,8 +107,8 @@ impl Explorer {
                 mv = m;
             }
 
-            a = i8::max(a, value);
-            if a >= b {
+            let max_a = i8::max(a, value);
+            if max_a >= b {
                 break;
             }
         }
@@ -106,12 +122,12 @@ impl Explorer {
         if board.is_first_player_win() {
             // Added size here so we can select the move that finishes the game 
             // the quickest.
-            let score: i8 = MAX_SCORE - i8::try_from(board.moves_played()).unwrap();
+            let score: i8 = MAX_SCORE - board.moves_played() as i8;
             return Some(score);
         }
 
         else if board.is_second_player_win() {
-            let score: i8 = MAX_SCORE - i8::try_from(board.moves_played()).unwrap();
+            let score: i8 = MAX_SCORE - board.moves_played() as i8;
             Some(-score)
         }
 

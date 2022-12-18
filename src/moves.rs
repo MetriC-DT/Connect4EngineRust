@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::board::{WIDTH, Board};
 
 pub const EMPTY_MOVE: u8 = u8::MAX;
@@ -16,8 +18,17 @@ pub struct Moves {
 }
 
 impl Moves {
-    pub fn new(total_boards: i64) -> Self {
-        Self { total_board: total_boards, pointer: 0 }
+    pub fn new(total_board: i64) -> Self {
+        Self { total_board, pointer: 0 }
+    }
+}
+
+impl Display for Moves {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let k = DEFAULT_ORDER.iter()
+            .filter(|x| !Board::col_is_occupied(self.total_board, **x))
+            .collect::<Vec<_>>();
+        write!(f, "{:?}", k)
     }
 }
 
@@ -59,5 +70,9 @@ impl MoveEvalPair {
 
     pub fn get_move(&self) -> u8 {
         self.0
+    }
+
+    pub fn get_pair(&self) -> (u8, i8) {
+        (self.0, self.1)
     }
 }
