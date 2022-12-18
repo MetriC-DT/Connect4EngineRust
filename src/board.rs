@@ -177,10 +177,10 @@ impl Board {
         let mask = 1 << shift;
         let col_mask = COLUMN_MASK << shift;
         let new_position = (self.total_board & col_mask) + mask;
-        self.total_board ^= new_position;
+        self.total_board |= new_position;
 
         // (1 or 0) * new_position is faster than the if statement...
-        self.board ^= -(self.get_current_player() as i64) & new_position;
+        self.board |= -(self.get_current_player() as i64) & new_position;
     }
 
     /// returns true if the bitboard is a winner.

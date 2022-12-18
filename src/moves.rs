@@ -44,6 +44,7 @@ impl MoveEvalPair {
     pub fn new(mv: u8, score: i8) -> Self {
         Self(mv, score)
     }
+
     pub fn set_eval(&mut self, eval: i8) {
         self.1 = eval;
     }
