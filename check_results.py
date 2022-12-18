@@ -8,7 +8,7 @@ def validate(file1, file2):
         f2array = (int(line.split()[1]) for line in f.readlines())
 
     for (a, b) in zip(f1array, f2array):
-        s = "{} {}\t{}\t{}\t{}".format("Expected", a, "Got", b)
+        s = "{} {}\t{}\t{}".format("Expected", a, "Got", b)
         print(s)
 
         if a != 0 or b != 0:

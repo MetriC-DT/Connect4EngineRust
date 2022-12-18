@@ -28,10 +28,10 @@ fn test_files(filename: &str) -> io::Result<()> {
         totaltime += delta;
 
         println!("{}\t{}\t{}us\t{}",
+                 &linestr.split(' ').next().unwrap(),
                  evaluation.get_eval(),
                  explorer.get_nodes_explored() - prev_nodecount,
-                 delta,
-                 &linestr.split(' ').next().unwrap())
+                 delta)
     }
 
     let nodecount = explorer.get_nodes_explored();

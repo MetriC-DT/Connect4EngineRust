@@ -62,6 +62,7 @@ impl Explorer {
     fn negamax_eval_pair(&mut self, a: i8, b: i8) -> MoveEvalPair {
         // increment nodes searched.
         self.nodes_explored += 1;
+
         let mut orig_board_copy = self.board.clone();
 
         // quick endgame lookahead. checks if game ends in one move.
