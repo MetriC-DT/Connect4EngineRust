@@ -6,20 +6,20 @@ const MAX_TABLE_SIZE: usize = (1 << 23) + 9;
 /// represents an entry of the transposition table.
 #[derive(Debug, Clone)]
 struct Entry {
-    board_key: i64,
+    board_key: u64,
     evaluation: i8
 }
 
 impl Entry {
-    pub fn new(board_key: i64, evaluation: i8) -> Self {
+    pub fn new(board_key: u64, evaluation: i8) -> Self {
         Self { board_key, evaluation }
     }
 }
 
 impl Default for Entry {
     fn default() -> Self {
-        // chose to use -1 (0b11111...) because no key will have that value.
-        Entry::new(-1, 0)
+        // chose to use u64::MAX because no key will have that value.
+        Entry::new(u64::MAX, 0)
     }
 }
 
@@ -43,10 +43,8 @@ impl TranspositionTable {
         self.table[TranspositionTable::location(key)] = entry;
     }
 
-    /// obtains the location of the key into the transposition table.
-    pub fn location(key: i64) -> usize {
-        let keybytes = key.to_le_bytes();
-        usize::from_le_bytes(keybytes) % MAX_TABLE_SIZE
+    pub fn location(key: u64) -> usize {
+        key as usize % MAX_TABLE_SIZE
     }
 
     pub fn get(&self, board: &Board) -> Option<i8> {

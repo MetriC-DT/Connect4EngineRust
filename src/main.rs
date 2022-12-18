@@ -3,13 +3,7 @@ use std::{fs, io::{BufRead, self, BufReader}, time::Instant, env};
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
-    test_files(args[1].as_str())?;
-
-    Ok(())
-}
-
-fn test_files(filename: &str) -> io::Result<()> {
-    let file = fs::File::open(filename)?;
+    let file = fs::File::open(args[1].as_str())?;
     let reader = BufReader::new(file);
     let mut explorer = Explorer::new();
 
