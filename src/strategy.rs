@@ -60,11 +60,12 @@ impl Explorer {
     /// to the evaluation of the position.
     ///
     /// ASSUMES the game is not yet over.
-    fn negamax_eval_pair(&mut self, a: i8, b: i8) -> MoveEvalPair {
+    fn negamax_eval_pair(&mut self, mut a: i8, mut b: i8) -> MoveEvalPair {
         // increment nodes searched.
         self.nodes_explored += 1;
 
         let mut orig_board_copy = self.board.clone();
+
         // quick endgame lookahead. checks if game ends in one move.
         for col in self.board.get_valid_moves() {
             orig_board_copy.add_unchecked(col);
@@ -81,17 +82,23 @@ impl Explorer {
                 let player_val = val;
                 return MoveEvalPair::new(col, player_val);
             }
+
+            // restore orig_board_copy
             orig_board_copy = self.board;
         }
 
         // TODO - check if move is in openings database.
 
-        // evaluation value of a position
         let mut value = -MAX_SCORE;
         let mut mv = EMPTY_MOVE;
-        let mut a = a;
         let validmoves = self.board.get_valid_moves();
 
+        // look up in transposition table
+        if let Some(val) = self.transpositiontable.get(&self.board) {
+            if val > b { return MoveEvalPair::new(EMPTY_MOVE, val); }
+        }
+
+        // evaluation value of position
         for m in validmoves {
             self.board.add_unchecked(m);
 
@@ -108,6 +115,7 @@ impl Explorer {
             if a >= b { break; }
         }
 
+        self.transpositiontable.insert(&self.board, value);
         MoveEvalPair::new(mv, value)
     }
 
