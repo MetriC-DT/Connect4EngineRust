@@ -65,7 +65,6 @@ impl Explorer {
         self.nodes_explored += 1;
 
         let mut orig_board_copy = self.board.clone();
-
         // quick endgame lookahead. checks if game ends in one move.
         for col in self.board.get_valid_moves() {
             orig_board_copy.add_unchecked(col);
@@ -96,19 +95,7 @@ impl Explorer {
         for m in validmoves {
             self.board.add_unchecked(m);
 
-            // no transposition table
             let eval_val = -self.negamax_eval_pair(-b, -a).get_eval();
-
-            // with transposition table
-            // let eval_val;
-            // if let Some(eval) = self.transpositiontable.get(&self.board) {
-            //     eval_val = eval;
-            // }
-            // else {
-            //     eval_val = -self.negamax_eval_pair(-b, -a).get_eval();
-            //     self.transpositiontable.insert(&self.board, eval_val);
-            // }
-
             if eval_val > value {
                 value = eval_val;
                 mv = m;
