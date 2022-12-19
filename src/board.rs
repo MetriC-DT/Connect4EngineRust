@@ -12,18 +12,18 @@ pub const WIDTH: u8 = 7;
 pub const SIZE: u8 = WIDTH * HEIGHT;
 
 /// down, up-left, left, down-left directions of bitboard
-pub const DIRECTION: [usize; 4] = [1, 7, 8, 9];
+pub const DIRECTION: [usize; 4] = [1, 6, 7, 8];
 
 /// bit representation of the playable board.
-pub const PLAYABLE_REGION: i64 = 0b00111111_00111111_00111111_00111111_00111111_00111111_00111111;
+pub const PLAYABLE_REGION: i64 = 0b0111111_0111111_0111111_0111111_0111111_0111111_0111111;
 
 /// mask for bottom row.
-pub const BOTTOM_ROW_MASK: i64 = 0b00000001_00000001_00000001_00000001_00000001_00000001_00000001;
+pub const BOTTOM_ROW_MASK: i64 = 0b0000001_0000001_0000001_0000001_0000001_0000001_0000001;
 
 /// mask for a column (0b111111)
 pub const COLUMN_MASK: i64 = (1 << HEIGHT) - 1;
 
-pub const COUNTS_PER_COL: u8 = 8;
+pub const COUNTS_PER_COL: u8 = 7;
 
 /// Bitboard implementation of the Connect 4 Board.
 /// 
@@ -33,12 +33,12 @@ pub const COUNTS_PER_COL: u8 = 8;
 /// player gets their own bitboard.
 ///
 /// Each bitboard is represented as such:
-/// 5 13 21 29 37 45 53
-/// 4 12 20 28 36 44 52
-/// 3 11 19 27 35 43 51
-/// 2 10 18 26 34 42 50
-/// 1 9  17 25 33 41 49
-/// 0 8  16 24 32 40 48
+/// 5 12 19 26 33 40 47
+/// 4 11 18 25 32 39 46
+/// 3 10 17 24 31 38 45
+/// 2 9  16 23 30 37 44
+/// 1 8  15 22 29 36 43
+/// 0 7  14 21 28 35 42
 ///
 /// the skip by 2 for each row is to make winner checking easier.
 ///

@@ -1,4 +1,8 @@
-use connect4engine::{board::Board, transpositiontable::TranspositionTable};
+use connect4engine::board::Board;
+use connect4engine::transpositiontable::FLAG_EXACT;
+use connect4engine::transpositiontable::TranspositionTable;
+use connect4engine::transpositiontable::FLAG_UPPER;
+use connect4engine::transpositiontable::FLAG_LOWER;
 
 #[test]
 fn test_insert_get() {
@@ -6,10 +10,12 @@ fn test_insert_get() {
     let eval_hi = 5;
 
     let mut table = TranspositionTable::new();
-    assert!(table.get(&board).is_none());
+    assert!(table.get_entry(&board).is_none());
 
-    table.insert(&board, eval_hi);
-    assert_eq!(table.get(&board).unwrap(), eval_hi);
+    table.insert(&board, eval_hi, FLAG_UPPER);
+    let entry = table.get_entry(&board).unwrap();
+    assert_eq!(entry.get_eval(), eval_hi);
+    assert_eq!(entry.get_flag(), FLAG_UPPER);
 }
 
 #[test]
@@ -18,10 +24,12 @@ fn test_insert_get_negative() {
     let eval_hi = -1;
 
     let mut table = TranspositionTable::new();
-    assert!(table.get(&board).is_none());
+    assert!(table.get_entry(&board).is_none());
 
-    table.insert(&board, eval_hi);
-    assert_eq!(table.get(&board).unwrap(), eval_hi);
+    table.insert(&board, eval_hi, FLAG_UPPER);
+    let entry = table.get_entry(&board).unwrap();
+    assert_eq!(entry.get_eval(), eval_hi);
+    assert_eq!(entry.get_flag(), FLAG_UPPER);
 }
 
 #[test]
@@ -30,11 +38,15 @@ fn test_evict() {
     let eval_hi = 10;
 
     let mut table = TranspositionTable::new();
-    assert!(table.get(&board).is_none());
+    assert!(table.get_entry(&board).is_none());
 
-    table.insert(&board, eval_hi);
-    assert_eq!(table.get(&board).unwrap(), eval_hi);
+    table.insert(&board, eval_hi, FLAG_LOWER);
+    let entry = table.get_entry(&board).unwrap();
+    assert_eq!(entry.get_eval(), eval_hi);
+    assert_eq!(entry.get_flag(), FLAG_LOWER);
 
-    table.insert(&board, eval_hi + 5);
-    assert_eq!(table.get(&board).unwrap(), eval_hi + 5);
+    table.insert(&board, 0, FLAG_EXACT);
+    let entry = table.get_entry(&board).unwrap();
+    assert_eq!(entry.get_eval(), 0);
+    assert_eq!(entry.get_flag(), FLAG_EXACT);
 }

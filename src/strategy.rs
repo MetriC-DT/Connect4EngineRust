@@ -1,4 +1,4 @@
-use crate::{board::{Board, SIZE}, moves::{MoveEvalPair, EMPTY_MOVE}, transpositiontable::TranspositionTable};
+use crate::{board::{Board, SIZE}, moves::{MoveEvalPair, EMPTY_MOVE}, transpositiontable::{TranspositionTable, FLAG_UPPER}};
 
 pub const MAX_SCORE: i8 = 1 + SIZE as i8;
 pub const TIE_SCORE: i8 = 0;
@@ -91,15 +91,15 @@ impl Explorer {
 
         let mut value = -MAX_SCORE;
         let mut mv = EMPTY_MOVE;
-        let validmoves = self.board.get_valid_moves();
 
         // look up in transposition table
-        if let Some(val) = self.transpositiontable.get(&self.board) {
+        if let Some(entry) = self.transpositiontable.get_entry(&self.board) {
+            let val = entry.get_eval();
             if val > b || val < a { return MoveEvalPair::new(EMPTY_MOVE, val); }
         }
 
         // evaluation value of position
-        for m in validmoves {
+        for m in self.board.get_valid_moves() {
             self.board.add_unchecked(m);
 
             let eval_val = -self.negamax_eval_pair(-b, -a).get_eval();
@@ -107,6 +107,7 @@ impl Explorer {
                 value = eval_val;
                 mv = m;
             }
+
             a = i8::max(a, value);
 
             // revert back to original position
@@ -115,7 +116,7 @@ impl Explorer {
             if a >= b { break; }
         }
 
-        self.transpositiontable.insert(&self.board, value);
+        self.transpositiontable.insert(&self.board, value, FLAG_UPPER);
         MoveEvalPair::new(mv, value)
     }
 
