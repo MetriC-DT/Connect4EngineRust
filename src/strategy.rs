@@ -1,4 +1,4 @@
-use crate::{board::{Board, SIZE}, moves::{MoveEvalPair, EMPTY_MOVE}, transpositiontable::{TranspositionTable, FLAG_UPPER}};
+use crate::{board::{Board, SIZE}, moves::{MoveEvalPair, EMPTY_MOVE}, transpositiontable::{TranspositionTable, FLAG_UPPER, FLAG_EXACT, FLAG_LOWER}};
 
 pub const MAX_SCORE: i8 = 1 + SIZE as i8;
 pub const TIE_SCORE: i8 = 0;
@@ -89,14 +89,23 @@ impl Explorer {
 
         // TODO - check if move is in openings database.
 
-        let mut value = -MAX_SCORE;
-        let mut mv = EMPTY_MOVE;
-
         // look up in transposition table
         if let Some(entry) = self.transpositiontable.get_entry(&self.board) {
+            let flag = entry.get_flag();
             let val = entry.get_eval();
-            if val > b || val < a { return MoveEvalPair::new(EMPTY_MOVE, val); }
+
+            if      flag == FLAG_EXACT { return MoveEvalPair::new(EMPTY_MOVE, val); }
+            else if flag == FLAG_LOWER { a = i8::max(a, val); }
+            else if flag == FLAG_UPPER { b = i8::min(b, val); }
+
+            if a >= b {
+                return MoveEvalPair::new(EMPTY_MOVE, val);
+            }
         }
+
+        let mut value = -MAX_SCORE;
+        let mut mv = EMPTY_MOVE;
+        let a_orig = a;
 
         // evaluation value of position
         for m in self.board.get_valid_moves() {
@@ -116,7 +125,15 @@ impl Explorer {
             if a >= b { break; }
         }
 
-        self.transpositiontable.insert(&self.board, value, FLAG_UPPER);
+        // insert into transposition table.
+        if value <= a_orig {
+            self.transpositiontable.insert(&self.board, value, FLAG_UPPER);
+        } else if value >= b {
+            self.transpositiontable.insert(&self.board, value, FLAG_LOWER);
+        } else {
+            self.transpositiontable.insert(&self.board, value, FLAG_EXACT);
+        }
+
         MoveEvalPair::new(mv, value)
     }
 
@@ -132,14 +149,10 @@ impl Explorer {
         }
 
         // if draw game
-        else if board.is_filled() {
-            Some(TIE_SCORE)
-        }
+        else if board.is_filled() { Some(TIE_SCORE) }
 
         // otherwise, the game is still ongoing.
-        else {
-            None
-        }
+        else { None }
     }
 
     /// returns the number of nodes explored.
