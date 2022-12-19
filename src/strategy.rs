@@ -87,34 +87,35 @@ impl Explorer {
         // TODO - check if move is in openings database.
 
         // evaluation value of a position
-        let mut value = i8::MIN;
+        let mut value = -MAX_SCORE;
         let mut mv = EMPTY_MOVE;
-        let mut alpha = a;
+        let mut a = a;
+        let validmoves = self.board.get_valid_moves();
 
-        for m in self.board.get_valid_moves() {
+        for m in validmoves {
             self.board.add_unchecked(m);
 
-            let eval_val;
-            if let Some(eval) = self.transpositiontable.get(&self.board) {
-                eval_val = eval;
-            }
-            else {
-                eval_val = -self.negamax_eval_pair(-b, -a).get_eval();
-                self.transpositiontable.insert(&self.board, eval_val);
-            }
+            let eval_val = -self.negamax_eval_pair(-b, -a).get_eval();
 
-            // revert back to original position
-            self.change_board(&orig_board_copy);
+            // let eval_val;
+            // if let Some(eval) = self.transpositiontable.get(&self.board) {
+            //     eval_val = eval;
+            // }
+            // else {
+            //     eval_val = -self.negamax_eval_pair(-b, -a).get_eval();
+            //     self.transpositiontable.insert(&self.board, eval_val);
+            // }
 
             if eval_val > value {
                 value = eval_val;
                 mv = m;
             }
+            a = i8::max(a, value);
 
-            alpha = i8::max(alpha, value);
-            if alpha >= b {
-                break;
-            }
+            // revert back to original position
+            self.change_board(&orig_board_copy);
+
+            if a >= b { break; }
         }
 
         MoveEvalPair::new(mv, value)
