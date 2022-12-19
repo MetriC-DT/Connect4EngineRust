@@ -1,7 +1,7 @@
 use crate::board::Board;
 
 /// Number of elements in the table. Best to choose a prime.
-const MAX_TABLE_SIZE: usize = (1 << 19) - 1;
+const MAX_TABLE_SIZE: usize = 8388593;
 
 /// bits in playable region (refer to board.rs)
 const PLAYABLE_BITS: i64 = 56;
