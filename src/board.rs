@@ -12,15 +12,18 @@ pub const WIDTH: u8 = 7;
 pub const SIZE: u8 = WIDTH * HEIGHT;
 
 /// down, up-left, left, down-left directions of bitboard
-pub const DIRECTION: [usize; 4] = [1, 6, 7, 8];
+pub const DIRECTION: [usize; 4] = [1, 7, 8, 9];
 
 /// bit representation of the playable board.
-pub const PLAYABLE_REGION: i64 = 0b0111111011111101111110111111011111101111110111111;
+pub const PLAYABLE_REGION: i64 = 0b00111111_00111111_00111111_00111111_00111111_00111111_00111111;
 
 /// mask for bottom row.
-pub const BOTTOM_ROW_MASK: i64 = 0b0000001000000100000010000001000000100000010000001;
+pub const BOTTOM_ROW_MASK: i64 = 0b00000001_00000001_00000001_00000001_00000001_00000001_00000001;
 
+/// mask for a column (0b111111)
 pub const COLUMN_MASK: i64 = (1 << HEIGHT) - 1;
+
+pub const COUNTS_PER_COL: u8 = 8;
 
 /// Bitboard implementation of the Connect 4 Board.
 /// 
@@ -30,14 +33,14 @@ pub const COLUMN_MASK: i64 = (1 << HEIGHT) - 1;
 /// player gets their own bitboard.
 ///
 /// Each bitboard is represented as such:
-/// 5 12 19 26 33 40 47
-/// 4 11 18 25 32 39 46
-/// 3 10 17 24 31 38 45
-/// 2 9  16 23 30 37 44
-/// 1 8  15 22 29 36 43
-/// 0 7  14 21 28 35 42
+/// 5 13 21 29 37 45 53
+/// 4 12 20 28 36 44 52
+/// 3 11 19 27 35 43 51
+/// 2 10 18 26 34 42 50
+/// 1 9  17 25 33 41 49
+/// 0 8  16 24 32 40 48
 ///
-/// the skip by 1 for each row is to make winner checking easier.
+/// the skip by 2 for each row is to make winner checking easier.
 ///
 /// The `total_board` variable describes the OR of the two player's
 /// bitboards.
@@ -111,7 +114,7 @@ impl Board {
     ///
     /// 0 <= col < WIDTH
     pub fn get_height(&self, col: u8) -> u8 {
-        let colmask: i64 = ((1 << HEIGHT) - 1) << (col * (HEIGHT + 1));
+        let colmask: i64 = COLUMN_MASK << (col * COUNTS_PER_COL);
         (self.total_board & colmask).count_ones() as u8
     }
 
@@ -121,7 +124,7 @@ impl Board {
     ///
     /// returns `true` if occupied, otherwise, `false`
     pub fn get(&self, row: u8, col: u8) -> Option<bool> {
-        let mask = 1 << (row + col * (HEIGHT + 1));
+        let mask = 1 << (row + col * COUNTS_PER_COL);
         let piece = (self.board & mask) != 0;
         let within_total = (self.total_board & mask) != 0;
 
@@ -140,7 +143,7 @@ impl Board {
     }
 
     pub fn col_is_occupied(board: i64, col: u8) -> bool {
-        let top_bit = 1 << ((HEIGHT - 1) + col * (HEIGHT + 1));
+        let top_bit = 1 << ((HEIGHT - 1) + col * COUNTS_PER_COL);
         (board & top_bit) != 0
     }
 
@@ -169,14 +172,14 @@ impl Board {
 
     /// sets the next available bit at `col`
     fn set_next_available(&mut self, col: u8) {
-        let shift = col * (HEIGHT + 1);
+        let shift = col * COUNTS_PER_COL;
 
         // mask for the bottom of the column `col`. If we add
         // this to total_board, then we can get the location of the
         // next available slot in the column.
-        let mask = 1 << shift;
-        let col_mask = COLUMN_MASK << shift;
-        let new_position = (self.total_board & col_mask) + mask;
+        let mask: i64 = 1 << shift;
+        let col_mask: i64 = COLUMN_MASK << shift;
+        let new_position: i64 = (self.total_board & col_mask) + mask;
         self.total_board ^= new_position;
 
         // (1 or 0) * new_position is faster than the if statement...
@@ -205,7 +208,7 @@ impl Board {
         for i in 0..SIZE {
             let c = i % WIDTH;
             let r = HEIGHT - i / WIDTH - 1;
-            let mask = 1 << (r + c * (HEIGHT + 1));
+            let mask = 1 << (r + c * COUNTS_PER_COL);
 
             if bitboard & mask != 0 {
                 s.push('1');

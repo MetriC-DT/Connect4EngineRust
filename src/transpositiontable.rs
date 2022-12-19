@@ -1,7 +1,7 @@
 use crate::board::Board;
 
 /// Number of elements in the table. Best to choose a prime.
-const MAX_TABLE_SIZE: usize = (1 << 23) + 9;
+const MAX_TABLE_SIZE: usize = (1 << 19) - 1;
 
 /// represents an entry of the transposition table.
 #[derive(Debug, Clone)]
