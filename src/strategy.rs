@@ -116,7 +116,7 @@ impl Explorer {
             a = i8::max(a, value);
 
             // revert back to original position
-            self.change_board(&orig_board_copy);
+            self.board = orig_board_copy;
 
             if a >= b { break; }
         }
