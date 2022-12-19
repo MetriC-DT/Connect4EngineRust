@@ -95,7 +95,7 @@ impl Explorer {
 
         // look up in transposition table
         if let Some(val) = self.transpositiontable.get(&self.board) {
-            if val > b { return MoveEvalPair::new(EMPTY_MOVE, val); }
+            if val > b || val < a { return MoveEvalPair::new(EMPTY_MOVE, val); }
         }
 
         // evaluation value of position
