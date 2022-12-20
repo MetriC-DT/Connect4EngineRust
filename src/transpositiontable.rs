@@ -1,10 +1,10 @@
-use crate::board::Board;
+use crate::{board::Board, moves::EMPTY_MOVE};
 
 /// Number of elements in the table. Best to choose a prime.
 const MAX_TABLE_SIZE: usize = 8388593;
 
 /// bits to retain in key (must be greater than playable size by at least 2)
-const KEY_BITS: i64 = 54;
+const KEY_BITS: i64 = 50;
 
 /// mask for the playable region
 const KEY_BIT_MASK: i64 = (1 << KEY_BITS) - 1;
@@ -21,9 +21,19 @@ const FLAG_LOC: i64 = EVAL_LOC + 8;
 /// Flag is 2 bits (one of enum lower, upper, exact)
 const FLAG_BIT_MASK: u64 = ((1 << 2) - 1) << FLAG_LOC;
 
+/// location of the move
+const MOVE_LOC: i64 = FLAG_LOC + 2;
+
+/// move is 3 bits.
+const MOVE_BIT_MASK: u64 = ((1 << 3) - 1) << MOVE_LOC;
+
 /// represents an entry of the transposition table.
 ///
-/// Storage format is {flag (2), eval (8), key (54)}
+/// Storage format is {move (4), flag (2), eval (8), key (50)}
+/// move is one of 0-6 (minimum 3 bits)
+/// flag is one of LOWER, EXACT, UPPER
+/// eval is the evaluation (8 bits)
+/// key is the key of the board.
 #[derive(Debug, Clone)]
 pub struct Entry {
     storage: i64
@@ -35,12 +45,13 @@ pub const FLAG_UPPER: Flag = 1;
 pub const FLAG_LOWER: Flag = 2;
 
 impl Entry {
-    pub fn new(board_key: i64, evaluation: i8, flag: Flag) -> Self {
+    pub fn new(board_key: i64, evaluation: i8, flag: Flag, mv: u8) -> Self {
         // we don't need to mask anything since board is guaranteed to not
         // have anything in the bits above the 53.
         let mut storage = board_key & KEY_BIT_MASK;
         storage |= ((evaluation as i64) << EVAL_LOC) & EVAL_BIT_MASK;
         storage |= (flag as i64) << FLAG_LOC;
+        storage |= (mv as i64) << MOVE_LOC;
         Self { storage }
     }
 
@@ -58,11 +69,16 @@ impl Entry {
         let flag = (self.storage as u64 & FLAG_BIT_MASK) >> FLAG_LOC;
         flag as i8
     }
+
+    pub fn get_move(&self) -> u8 {
+        let mv = (self.storage as u64 & MOVE_BIT_MASK) >> MOVE_LOC;
+        mv as u8
+    }
 }
 
 impl Default for Entry {
     fn default() -> Self {
-        Entry::new(-1, 0, FLAG_EXACT)
+        Entry::new(-1, 0, FLAG_EXACT, EMPTY_MOVE)
     }
 }
 
@@ -80,9 +96,9 @@ impl TranspositionTable {
 
     /// inserts the board game state and evaluation
     /// into the transposition table.
-    pub fn insert(&mut self, board: &Board, eval: i8, flag: Flag) {
+    pub fn insert(&mut self, board: &Board, eval: i8, flag: Flag, mv: u8) {
         let key = board.get_unique_position_key();
-        let entry = Entry::new(key, eval, flag);
+        let entry = Entry::new(key, eval, flag, mv);
         self.table[TranspositionTable::location(key)] = entry;
     }
 

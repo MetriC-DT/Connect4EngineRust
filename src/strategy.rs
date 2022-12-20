@@ -93,13 +93,14 @@ impl Explorer {
         if let Some(entry) = self.transpositiontable.get_entry(&self.board) {
             let flag = entry.get_flag();
             let val = entry.get_eval();
+            let mv = entry.get_move();
 
-            if      flag == FLAG_EXACT { return MoveEvalPair::new(EMPTY_MOVE, val); }
+            if      flag == FLAG_EXACT { return MoveEvalPair::new(mv, val); }
             else if flag == FLAG_LOWER { a = i8::max(a, val); }
             else if flag == FLAG_UPPER { b = i8::min(b, val); }
 
             if a >= b {
-                return MoveEvalPair::new(EMPTY_MOVE, val);
+                return MoveEvalPair::new(mv, val);
             }
         }
 
@@ -127,11 +128,11 @@ impl Explorer {
 
         // insert into transposition table.
         if value <= a_orig {
-            self.transpositiontable.insert(&self.board, value, FLAG_UPPER);
+            self.transpositiontable.insert(&self.board, value, FLAG_UPPER, mv);
         } else if value >= b {
-            self.transpositiontable.insert(&self.board, value, FLAG_LOWER);
+            self.transpositiontable.insert(&self.board, value, FLAG_LOWER, mv);
         } else {
-            self.transpositiontable.insert(&self.board, value, FLAG_EXACT);
+            self.transpositiontable.insert(&self.board, value, FLAG_EXACT, mv);
         }
 
         MoveEvalPair::new(mv, value)
