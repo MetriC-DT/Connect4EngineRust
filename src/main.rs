@@ -56,12 +56,12 @@ fn eval_position(position: &str) {
     if mv == EMPTY_MOVE {
         let eval = eval * board.get_prev_player_signed();
         println!("The game is already over. (Eval: {})", eval);
-    } else {
+    }
+    else {
         let eval = eval * board.get_current_player_signed();
         let readable_mv = mv + 1; // mv used internally is 0-indexed.
         println!("Best Move: {} (Eval: {})", readable_mv, eval);
     }
-
 }
 
 /// runs all of the tests from the given test file.
