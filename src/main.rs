@@ -48,15 +48,16 @@ fn main() -> Result<(), String> {
 /// evaluates the position. Prints out string.
 fn eval_position(position: &str) {
     let board = Board::new_position(position);
+    println!("{}", board);
+
     let mut explorer = Explorer::with_board(board);
     let (mv, eval) = explorer.solve().get_pair();
-    let eval = eval * board.get_current_player_signed();
 
-    println!("{}", board);
     if mv == EMPTY_MOVE {
+        let eval = eval * board.get_prev_player_signed();
         println!("The game is already over. (Eval: {})", eval);
-    }
-    else {
+    } else {
+        let eval = eval * board.get_current_player_signed();
         let readable_mv = mv + 1; // mv used internally is 0-indexed.
         println!("Best Move: {} (Eval: {})", readable_mv, eval);
     }
