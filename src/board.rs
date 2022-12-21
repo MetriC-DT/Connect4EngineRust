@@ -94,9 +94,9 @@ impl Board {
 
     /// initializes board with given position.
     ///
-    /// The position string is a string that begins with all numbers [0-9]. The instance that a
+    /// The position string is a string that begins with col numbers [1-7]. The instance that a
     /// non-numerical character is encountered, this function will end and stop adding any more
-    /// pieces to the board.
+    /// pieces to the board. (example position string in `test_inputs/`)
     pub fn new_position(position: &str) -> Self {
         let mut board = Board::new();
         for c in position.chars() {

@@ -1,4 +1,6 @@
-use crate::{board::{Board, SIZE}, moves::{MoveEvalPair, EMPTY_MOVE}, transpositiontable::{TranspositionTable, FLAG_UPPER, FLAG_EXACT, FLAG_LOWER}};
+use crate::transpositiontable::{TranspositionTable, FLAG_UPPER, FLAG_EXACT, FLAG_LOWER};
+use crate::moves::{MoveEvalPair, EMPTY_MOVE};
+use crate::board::{SIZE, Board};
 
 pub const MAX_SCORE: i8 = 1 + SIZE as i8;
 pub const TIE_SCORE: i8 = 0;
@@ -38,6 +40,10 @@ impl Explorer {
 
     pub fn change_board(&mut self, board: &Board) {
         self.board = *board;
+    }
+
+    pub fn get_board(&self) -> &Board {
+        &self.board
     }
 
     pub fn solve(&mut self) -> MoveEvalPair {

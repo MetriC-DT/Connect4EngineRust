@@ -1,13 +1,71 @@
+use connect4engine::moves::EMPTY_MOVE;
 use connect4engine::{strategy::Explorer, board::Board};
-use std::{fs, io::{BufRead, self, BufReader}, time::Instant, env};
-use std::io::{stdout, Write};
+use std::fs;
+use std::time::Instant;
+use std::io::{self, BufReader, BufRead, Write};
+use clap::Parser;
 
-fn main() -> io::Result<()> {
-    let args: Vec<String> = env::args().collect();
 
-    test_files(args[1].as_str())
+/// command line arguments to use.
+#[derive(Parser, Debug)]
+#[command(author, version, about)]
+struct Args {
+
+    /// name of the test file to run (format inside test_inputs)
+    #[arg(short, long)]
+    test_file: Option<String>,
+
+    /// position to analyze.
+    #[arg(short, long)]
+    position: Option<String>,
 }
 
+/// main function
+fn main() -> Result<(), String> {
+    let args = Args::parse();
+
+    if let Some(filename) = args.test_file {
+        match test_files(&filename) {
+            Ok(()) => Ok(()),
+            Err(s) => Err(s.to_string()),
+        }
+    }
+
+    // explores the position, returning the evaluation and move.
+    else if let Some(position) = args.position {
+        eval_position(&position);
+        Ok(())
+    }
+
+    else {
+        // TODO - run repl loop.
+        println!("TODO - Repl to be implemented.");
+        Ok(())
+    }
+}
+
+
+/// evaluates the position. Prints out string.
+fn eval_position(position: &str) {
+    let board = Board::new_position(position);
+    let mut explorer = Explorer::with_board(board);
+    let (mv, eval) = explorer.solve().get_pair();
+    let eval = eval * board.get_current_player_signed();
+
+    println!("{}", board);
+    if mv == EMPTY_MOVE {
+        println!("The game is already over. (Eval: {})", eval);
+    }
+    else {
+        let readable_mv = mv + 1; // mv used internally is 0-indexed.
+        println!("Best Move: {} (Eval: {})", readable_mv, eval);
+    }
+
+}
+
+/// runs all of the tests from the given test file.
+/// The format of the test file is:
+/// [position] [evaluation]
 fn test_files(filename: &str) -> io::Result<()> {
     let file = fs::File::open(filename)?;
     let reader = BufReader::new(file);
@@ -34,7 +92,7 @@ fn test_files(filename: &str) -> io::Result<()> {
                  explorer.get_nodes_explored() - prev_nodecount,
                  delta);
 
-        stdout().flush()?
+        io::stdout().flush()?
     }
 
     let nodecount = explorer.get_nodes_explored();
