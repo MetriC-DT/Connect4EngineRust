@@ -3,7 +3,8 @@ use crate::{board::Board, moves::EMPTY_MOVE};
 /// Number of elements in the table. Best to choose a prime.
 const MAX_TABLE_SIZE: usize = 8388593;
 
-/// bits to retain in key (must be greater than playable size by at least 2)
+/// bits to retain in key (must be greater than 49 bits.
+/// to 42 (number of slots in board) + 7 (1 extra bit for number of columns)
 const KEY_BITS: i64 = 50;
 
 /// mask for the playable region
