@@ -184,9 +184,10 @@ impl Board {
         let new_position: u64 = (self.total_board & col_mask) + mask;
         self.total_board |= new_position;
 
-        // (1 or 0) * new_position is faster than the if statement...
-        self.board |= new_position * u64::from(self.get_current_player());
-        // self.board |= -(self.get_current_player() as i64) & new_position;
+        // Equivalent statements.
+        if self.get_current_player() { self.board |= new_position }
+        // self.board |= -(self.get_current_player() as u64) & new_position;
+        // self.board |= new_position * u64::from(self.get_current_player());
     }
 
     /// returns true if the bitboard is a winner.
@@ -313,8 +314,10 @@ impl Board {
     }
 
     /// obtains the current player ID (either 0 or 1).
-    pub fn get_current_player(&self) -> u8 {
-        self.moves_made & 1
+    /// false = 0 => player 0
+    /// true  = 1 => player 1
+    pub fn get_current_player(&self) -> bool {
+        (self.moves_made & 1) != 0
     }
 
     /// obtains the current player as a signed number (1 for player 0, -1 for player 1)

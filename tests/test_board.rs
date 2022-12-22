@@ -126,8 +126,8 @@ fn test_signed_player() {
         let curr = b.get_current_player();
         let scurr = b.get_current_player_signed();
 
-        assert_eq!(curr, i as u8 % 2);
-        match curr {
+        assert_eq!(curr as u8, i as u8 % 2);
+        match curr as u8 {
             0 => assert_eq!(1, scurr),
             1 => assert_eq!(-1, scurr),
             _ => assert!(false) // fails
