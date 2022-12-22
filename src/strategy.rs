@@ -47,19 +47,13 @@ impl Explorer {
     }
 
     pub fn solve(&mut self) -> MoveEvalPair {
-        if let Some(eval) = Self::game_over_eval(&self.board) {
-            MoveEvalPair::new(EMPTY_MOVE, eval)
-        }
-        else {
-            // game is guaranteed to not be over. Therefore, we are
-            // allowed to call negamax_eval_pair.
-            let starter = MAX_SCORE + 1;
-            let a = -starter;
-            let b = starter;
+        // TODO - check if move is in openings database.
+        let starter = MAX_SCORE + 1;
+        let a = -starter;
+        let b = starter;
 
-            let board_clone = self.board;
-            self.negamax_eval_pair(board_clone, a, b)
-        }
+        let board_clone = self.board;
+        self.negamax_eval_pair(board_clone, a, b)
     }
 
 
@@ -75,29 +69,9 @@ impl Explorer {
         // increment nodes searched.
         self.nodes_explored += 1;
 
-        let mut board_cpy = board.clone();
-
-        // quick endgame lookahead. checks if game ends in one move.
-        for col in board.get_valid_moves() {
-            board_cpy.add_unchecked(col);
-
-            if let Some(val) = Explorer::game_over_eval(&board_cpy) {
-                // README: Returning val instantly like this only works when
-                // the the player cannot hope to play another move that ends
-                // the game with a better result. For connect4, on the same move,
-                // the player cannot have a move that results in a draw and another
-                // that results in him winning. Therefore, the best and only move that
-                // ends the game right away is the current one.
-
-                // let player_val = val * self.board.get_current_player_signed();
-                return MoveEvalPair::new(col, val);
-            }
-
-            // restore orig_board_copy
-            board_cpy = board;
+        if let Some(val) = Self::game_over_eval(&board) {
+            return MoveEvalPair::new(EMPTY_MOVE, -val);
         }
-
-        // TODO - check if move is in openings database.
 
         // look up in transposition table
         let board_key = board.get_unique_position_key();
@@ -118,6 +92,7 @@ impl Explorer {
         let mut value = -MAX_SCORE;
         let mut mv = EMPTY_MOVE;
         let a_orig = a;
+        let mut board_cpy = board.clone();
 
         // evaluation value of position
         for m in board.get_valid_moves() {
