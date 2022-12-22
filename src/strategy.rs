@@ -57,7 +57,9 @@ impl Explorer {
 
         let max_depth = SIZE - board_clone.moves_played() + 1;
         for depth in 0..max_depth {
-            if let Some(pair) = self.negamax_eval_pair(board_clone, depth, a, b) {
+            let (found, remaining) = self.negamax_eval_pair(board_clone, depth, a, b);
+            if remaining { continue; } // TODO - remove. This ruins performance.
+            if let Some(pair) = found {
                 let eval = pair.get_eval();
                 if eval > 0 {
                     return pair;
@@ -80,13 +82,15 @@ impl Explorer {
                          board: Board,
                          depth: u8,
                          mut a: i8,
-                         mut b: i8) -> Option<MoveEvalPair> {
+                         mut b: i8) -> (Option<MoveEvalPair>, bool) {
 
         // increment nodes searched.
         self.nodes_explored += 1;
 
         if let Some(val) = Self::game_over_eval(&board) {
-            return Some(MoveEvalPair::new(EMPTY_MOVE, -val));
+            let remaining = false;
+            let pair =  Some(MoveEvalPair::new(EMPTY_MOVE, -val));
+            return (pair, remaining)
         }
 
         // look up in transposition table
@@ -106,19 +110,21 @@ impl Explorer {
         // }
 
         if depth == 0 {
-            return None;
+            return (None, true);
         }
 
         let mut value = -MAX_SCORE;
         let mut mv = EMPTY_MOVE;
         let a_orig = a;
         let mut board_cpy = board.clone();
+        let mut any_remaining = false;
 
         // evaluation value of position
         for m in board.get_valid_moves() {
             board_cpy.add_unchecked(m);
 
-            let found = self.negamax_eval_pair(board_cpy, depth - 1, -b, -a);
+            let (found, remaining) = self.negamax_eval_pair(board_cpy, depth - 1, -b, -a);
+            any_remaining |= remaining;
 
             if let Some(pair) = found {
                 let eval_val = -pair.get_eval();
@@ -147,12 +153,7 @@ impl Explorer {
         //     self.transpositiontable.insert_with_key(board_key, value, FLAG_EXACT, mv);
         // }
 
-        if mv != EMPTY_MOVE {
-            Some(MoveEvalPair::new(mv, value))
-        }
-        else {
-            None
-        }
+        (Some(MoveEvalPair::new(mv, value)), any_remaining)
     }
 
     /// returns None if not game over. Otherwise, will

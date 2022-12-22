@@ -59,9 +59,9 @@ fn test_endgame_5() {
 fn test_endgame_6() {
     let line = "65214673556155731566316327373221417";
     let (turncount, board) = run_game(line);
-    assert!(board.is_filled());
-    assert!(!board.is_first_player_win());
-    assert!(board.is_second_player_win());
+    assert!(board.is_first_player_win());
+    assert!(!board.is_second_player_win());
+    assert!(!board.is_filled());
     assert_eq!(turncount, board.moves_played() as usize - line.len())
 }
 
