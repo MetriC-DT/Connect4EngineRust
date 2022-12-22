@@ -5,25 +5,25 @@ const MAX_TABLE_SIZE: usize = 8388593;
 
 /// bits to retain in key (must be greater than 49 bits.
 /// to 42 (number of slots in board) + 7 (1 extra bit for number of columns)
-const KEY_BITS: i64 = 50;
+const KEY_BITS: u64 = 50;
 
 /// mask for the playable region
-const KEY_BIT_MASK: i64 = (1 << KEY_BITS) - 1;
+const KEY_BIT_MASK: u64 = (1 << KEY_BITS) - 1;
 
 /// location of the lowest bits in evaluation
-const EVAL_LOC: i64 = KEY_BITS;
+const EVAL_LOC: u64 = KEY_BITS;
 
 /// Evals are 8 bits.
-const EVAL_BIT_MASK: i64 = ((1 << 8) - 1) << EVAL_LOC;
+const EVAL_BIT_MASK: u64 = ((1 << 8) - 1) << EVAL_LOC;
 
 /// location of the lowest flag bits
-const FLAG_LOC: i64 = EVAL_LOC + 8;
+const FLAG_LOC: u64 = EVAL_LOC + 8;
 
 /// Flag is 2 bits (one of enum lower, upper, exact)
 const FLAG_BIT_MASK: u64 = ((1 << 2) - 1) << FLAG_LOC;
 
 /// location of the move
-const MOVE_LOC: i64 = FLAG_LOC + 2;
+const MOVE_LOC: u64 = FLAG_LOC + 2;
 
 /// move is 3 bits.
 const MOVE_BIT_MASK: u64 = ((1 << 3) - 1) << MOVE_LOC;
@@ -37,7 +37,7 @@ const MOVE_BIT_MASK: u64 = ((1 << 3) - 1) << MOVE_LOC;
 /// key is the key of the board.
 #[derive(Debug, Clone)]
 pub struct Entry {
-    storage: i64
+    storage: u64
 }
 
 pub type Flag = i8;
@@ -46,15 +46,17 @@ pub const FLAG_UPPER: Flag = 1;
 pub const FLAG_LOWER: Flag = 2;
 
 impl Entry {
-    pub fn new(board_key: i64, evaluation: i8, flag: Flag, mv: u8) -> Self {
+    pub fn new(board_key: u64, evaluation: i8, flag: Flag, mv: u8) -> Self {
         let mut storage = board_key & KEY_BIT_MASK;
-        storage |= ((evaluation as i64) << EVAL_LOC) & EVAL_BIT_MASK;
-        storage |= (flag as i64) << FLAG_LOC;
-        storage |= (mv as i64) << MOVE_LOC;
+        let eval_bytes = evaluation.to_le_bytes();
+        let eval_bytes = u8::from_le_bytes(eval_bytes);
+        storage |= (eval_bytes as u64) << EVAL_LOC;
+        storage |= (flag as u64) << FLAG_LOC;
+        storage |= (mv as u64) << MOVE_LOC;
         Self { storage }
     }
 
-    pub fn get_key(&self) -> i64 {
+    pub fn get_key(&self) -> u64 {
         self.storage & KEY_BIT_MASK
     }
 
@@ -77,7 +79,7 @@ impl Entry {
 
 impl Default for Entry {
     fn default() -> Self {
-        Entry::new(-1, 0, FLAG_EXACT, EMPTY_MOVE)
+        Entry::new(u64::MAX, 0, FLAG_EXACT, EMPTY_MOVE)
     }
 }
 
@@ -100,15 +102,14 @@ impl TranspositionTable {
     }
 
     /// inserts the board game state and eval into transposition table using key.
-    pub fn insert_with_key(&mut self, key: i64, eval: i8, flag: Flag, mv: u8) {
+    pub fn insert_with_key(&mut self, key: u64, eval: i8, flag: Flag, mv: u8) {
         let entry = Entry::new(key, eval, flag, mv);
         self.table[TranspositionTable::location(key)] = entry;
     }
 
     /// obtains the location of the key into the transposition table.
-    pub fn location(key: i64) -> usize {
-        let keybytes = key.to_le_bytes();
-        usize::from_le_bytes(keybytes) % MAX_TABLE_SIZE
+    pub fn location(key: u64) -> usize {
+        key as usize % MAX_TABLE_SIZE
     }
 
     /// Gets the entry using the given board to calculate the key.
@@ -118,7 +119,7 @@ impl TranspositionTable {
     }
 
     /// obtains the selected entry, given a key.
-    pub fn get_entry_with_key(&self, key: i64) -> Option<&Entry> {
+    pub fn get_entry_with_key(&self, key: u64) -> Option<&Entry> {
         let loc = TranspositionTable::location(key);
         let selected_entry = &self.table[loc];
 

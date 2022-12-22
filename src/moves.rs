@@ -13,12 +13,12 @@ const DEFAULT_ORDER: [u8; WIDTH as usize] = [3, 2, 4, 1, 5, 0, 6];
 /// AGAIN, MAKE SURE GAME HAS NOT BEEN COMPLETED YET!!!
 #[derive(Clone, Copy)]
 pub struct Moves {
-    total_board: i64,
+    total_board: u64,
     pointer: usize,
 }
 
 impl Moves {
-    pub fn new(total_board: i64) -> Self {
+    pub fn new(total_board: u64) -> Self {
         Self { total_board, pointer: 0 }
     }
 }

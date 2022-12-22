@@ -15,13 +15,13 @@ pub const SIZE: u8 = WIDTH * HEIGHT;
 pub const DIRECTION: [usize; 4] = [1, 6, 7, 8];
 
 /// bit representation of the playable board.
-pub const PLAYABLE_REGION: i64 = 0b0111111_0111111_0111111_0111111_0111111_0111111_0111111;
+pub const PLAYABLE_REGION: u64 = 0b0111111_0111111_0111111_0111111_0111111_0111111_0111111;
 
 /// mask for bottom row.
-pub const BOTTOM_ROW_MASK: i64 = 0b0000001_0000001_0000001_0000001_0000001_0000001_0000001;
+pub const BOTTOM_ROW_MASK: u64 = 0b0000001_0000001_0000001_0000001_0000001_0000001_0000001;
 
 /// mask for a column (0b111111)
-pub const COLUMN_MASK: i64 = (1 << HEIGHT) - 1;
+pub const COLUMN_MASK: u64 = (1 << HEIGHT) - 1;
 
 /// number of items in every column, including extra top bit.
 pub const COUNTS_PER_COL: u8 = 7;
@@ -51,8 +51,8 @@ pub const COUNTS_PER_COL: u8 = 7;
 /// to obtain the bitboard for player 0, we can XOR it with `total_board`.
 #[derive(Debug, Clone, Copy)]
 pub struct Board {
-    board: i64,
-    total_board: i64,
+    board: u64,
+    total_board: u64,
     moves_made: u8
 }
 
@@ -116,7 +116,7 @@ impl Board {
     ///
     /// 0 <= col < WIDTH
     pub fn get_height(&self, col: u8) -> u8 {
-        let colmask: i64 = COLUMN_MASK << (col * COUNTS_PER_COL);
+        let colmask: u64 = COLUMN_MASK << (col * COUNTS_PER_COL);
         (self.total_board & colmask).count_ones() as u8
     }
 
@@ -144,7 +144,7 @@ impl Board {
         !Board::col_is_occupied(self.total_board, col) && col < WIDTH
     }
 
-    pub fn col_is_occupied(board: i64, col: u8) -> bool {
+    pub fn col_is_occupied(board: u64, col: u8) -> bool {
         let top_bit = 1 << ((HEIGHT - 1) + col * COUNTS_PER_COL);
         (board & top_bit) != 0
     }
@@ -179,21 +179,21 @@ impl Board {
         // mask for the bottom of the column `col`. If we add
         // this to total_board, then we can get the location of the
         // next available slot in the column.
-        let mask: i64 = 1 << shift;
-        let col_mask: i64 = COLUMN_MASK << shift;
-        let new_position: i64 = (self.total_board & col_mask) + mask;
+        let mask: u64 = 1 << shift;
+        let col_mask: u64 = COLUMN_MASK << shift;
+        let new_position: u64 = (self.total_board & col_mask) + mask;
         self.total_board |= new_position;
 
         // (1 or 0) * new_position is faster than the if statement...
-        // self.board |= self.get_current_player() as i64 * new_position;
-        self.board |= -(self.get_current_player() as i64) & new_position;
+        self.board |= new_position * u64::from(self.get_current_player());
+        // self.board |= -(self.get_current_player() as i64) & new_position;
     }
 
     /// returns true if the bitboard is a winner.
     ///
     /// We do not need an option for checking if this current player has lost
     /// because you cannot lose the game on the turn you played your move.
-    fn is_win(bitboard: i64) -> bool {
+    fn is_win(bitboard: u64) -> bool {
         for dir in DIRECTION {
             // checks two at a time for better efficiency.
             let bb = bitboard & (bitboard >> dir);
@@ -290,7 +290,7 @@ impl Board {
     /// of the playable board. This works because a slot of `0` below the
     /// bounding limits implies that the slot is occupied by the first player,
     /// while zeroes above mean empty.
-    pub fn get_unique_position_key(&self) -> i64 {
+    pub fn get_unique_position_key(&self) -> u64 {
         // OLD WAY
         // let bounding_limits = self.total_board + BOTTOM_ROW_MASK;
         // bounding_limits ^ self.board
