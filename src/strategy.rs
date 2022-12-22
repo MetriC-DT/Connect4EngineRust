@@ -53,7 +53,14 @@ impl Explorer {
         let b = starter;
 
         let board_clone = self.board;
-        self.negamax_eval_pair(board_clone, a, b)
+
+        let depth = SIZE - board_clone.moves_played();
+        if let Some(pair) = self.negamax_eval_pair(board_clone, depth, a, b) {
+            pair
+        }
+        else {
+            MoveEvalPair::new(EMPTY_MOVE, i8::MIN)
+        }
     }
 
 
@@ -63,14 +70,15 @@ impl Explorer {
     /// ASSUMES the game is not yet over.
     fn negamax_eval_pair(&mut self,
                          board: Board,
+                         depth: u8,
                          mut a: i8,
-                         mut b: i8) -> MoveEvalPair {
+                         mut b: i8) -> Option<MoveEvalPair> {
 
         // increment nodes searched.
         self.nodes_explored += 1;
 
         if let Some(val) = Self::game_over_eval(&board) {
-            return MoveEvalPair::new(EMPTY_MOVE, -val);
+            return Some(MoveEvalPair::new(EMPTY_MOVE, -val));
         }
 
         // look up in transposition table
@@ -80,13 +88,17 @@ impl Explorer {
             let val = entry.get_eval();
             let mv = entry.get_move();
 
-            if      flag == FLAG_EXACT { return MoveEvalPair::new(mv, val); }
+            if      flag == FLAG_EXACT { return Some(MoveEvalPair::new(mv, val)); }
             else if flag == FLAG_LOWER { a = i8::max(a, val); }
             else if flag == FLAG_UPPER { b = i8::min(b, val); }
 
             if a >= b {
-                return MoveEvalPair::new(mv, val);
+                return Some(MoveEvalPair::new(mv, val));
             }
+        }
+
+        if depth == 0 {
+            return None;
         }
 
         let mut value = -MAX_SCORE;
@@ -98,18 +110,24 @@ impl Explorer {
         for m in board.get_valid_moves() {
             board_cpy.add_unchecked(m);
 
-            let eval_val = -self.negamax_eval_pair(board_cpy, -b, -a).get_eval();
-            if eval_val > value {
-                value = eval_val;
-                mv = m;
+            let found = self.negamax_eval_pair(board_cpy, depth - 1, -b, -a);
+
+            if let Some(pair) = found {
+                let eval_val = -pair.get_eval();
+                if eval_val > value {
+                    value = eval_val;
+                    mv = m;
+                    a = i8::max(a, value);
+                }
             }
 
-            a = i8::max(a, value);
-
-            // revert back to original position
-            board_cpy = board;
-
-            if a >= b { break; }
+            if a >= b {
+                break;
+            }
+            else {
+                // revert back to original position
+                board_cpy = board;
+            }
         }
 
         // insert into transposition table.
@@ -121,7 +139,7 @@ impl Explorer {
             self.transpositiontable.insert_with_key(board_key, value, FLAG_EXACT, mv);
         }
 
-        MoveEvalPair::new(mv, value)
+        Some(MoveEvalPair::new(mv, value))
     }
 
     /// returns None if not game over. Otherwise, will
