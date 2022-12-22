@@ -23,6 +23,7 @@ pub const BOTTOM_ROW_MASK: i64 = 0b0000001_0000001_0000001_0000001_0000001_00000
 /// mask for a column (0b111111)
 pub const COLUMN_MASK: i64 = (1 << HEIGHT) - 1;
 
+/// number of items in every column, including extra top bit.
 pub const COUNTS_PER_COL: u8 = 7;
 
 /// Bitboard implementation of the Connect 4 Board.
@@ -40,7 +41,8 @@ pub const COUNTS_PER_COL: u8 = 7;
 /// 1 8  15 22 29 36 43
 /// 0 7  14 21 28 35 42
 ///
-/// the skip by 2 for each row is to make winner checking easier.
+/// the skip bits is to make winner checking easier
+/// (make sure we cannot create a win by having bits 4, 5, 6, 7, for example)
 ///
 /// The `total_board` variable describes the OR of the two player's
 /// bitboards.
@@ -183,7 +185,8 @@ impl Board {
         self.total_board ^= new_position;
 
         // (1 or 0) * new_position is faster than the if statement...
-        self.board ^= -(self.get_current_player() as i64) & new_position;
+        // self.board |= self.get_current_player() as i64 * new_position;
+        self.board |= -(self.get_current_player() as i64) & new_position;
     }
 
     /// returns true if the bitboard is a winner.
