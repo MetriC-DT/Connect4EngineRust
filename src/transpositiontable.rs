@@ -1,17 +1,33 @@
 use crate::{board::Board, moves::EMPTY_MOVE};
 
-/// Number of elements in the table. Best to choose a prime.
+/// Using the Chinese remainder theorem, using our key (which could be encoded in 49 bits), the
+/// two co-prime divisors are 2^(STORED_KEY_BITS) and MAX_TABLE_SIZE. Hence,
+/// key === a mod (2^STORED_KEY_BITS) and
+/// key === b mod (MAX_TABLE_SIZE)
+/// Since `2^STORED_KEY_BITS` and `MAX_TABLE_SIZE` are chosen to be pairwise co-prime, if `key` is
+/// a natural number < (2^STORED_KEY_BITS * MAX_TABLE_SIZE), then it will have a unique `c` where:
+/// key === c mod (2^STORED_KEY_BITS * MAX_TABLE_SIZE)
+///
+/// Thus, the key can be uniquely determined by the pair (a, b).
+
+/// Number of elements in the table. Best to choose a prime, and must be odd.
+/// With the Chinese remainder theorem, the size must be greater than 2^17, since the
+/// STORED_KEY_BITS is 32 bits and we need to uniquely encode 2^49 numbers (49-32=17)
 const MAX_TABLE_SIZE: usize = 8388593;
 
-/// bits to retain in key (must be greater than 49 bits.
-/// to 42 (number of slots in board) + 7 (1 extra bit for number of columns)
-const KEY_BITS: u64 = 50;
+/// bits to retain in key (must be >= 49 bits).
+/// 42 (number of slots in board) + 7 (1 extra bit for number of columns)
+const KEY_BITS: u64 = 49;
+
+/// number of bits used to store the key. Even though we store
+const STORED_KEY_BITS: u64 = 32;
 
 /// mask for the playable region
 const KEY_BIT_MASK: u64 = (1 << KEY_BITS) - 1;
 
-/// location of the lowest bits in evaluation
-const EVAL_LOC: u64 = KEY_BITS;
+/// location of the lowest bits in evaluation. Must be greater than the number of bits used to
+/// store the key (which is 49).
+const EVAL_LOC: u64 = KEY_BITS + 1;
 
 /// Evals are 8 bits.
 const EVAL_BIT_MASK: u64 = ((1 << 8) - 1) << EVAL_LOC;
