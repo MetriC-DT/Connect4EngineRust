@@ -141,7 +141,7 @@ impl Board {
     /// returns `true` if a new piece can be added into 
     /// the specified column.
     pub fn can_add(&self, col: u8) -> bool {
-        !Board::col_is_occupied(self.total_board, col) && col < WIDTH
+         col < WIDTH && !Board::col_is_occupied(self.total_board, col)
     }
 
     pub fn col_is_occupied(board: i64, col: u8) -> bool {
