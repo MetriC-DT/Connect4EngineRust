@@ -7,95 +7,71 @@ use crate::{board::Board, moves::EMPTY_MOVE};
 /// Since `2^STORED_KEY_BITS` and `MAX_TABLE_SIZE` are chosen to be pairwise co-prime, if `key` is
 /// a natural number < (2^STORED_KEY_BITS * MAX_TABLE_SIZE), then it will have a unique `c` where:
 /// key === c mod (2^STORED_KEY_BITS * MAX_TABLE_SIZE)
-///
-/// Thus, the key can be uniquely determined by the pair (a, b).
+/// Thus, the key can be uniquely determined by the pair (a, b). Since b is used as the location of
+/// the entry in the table, all we need to do is store a (which requires `STORED_KEY_BITS` bits).
 
 /// Number of elements in the table. Best to choose a prime, and must be odd.
 /// With the Chinese remainder theorem, the size must be greater than 2^17, since the
-/// STORED_KEY_BITS is 32 bits and we need to uniquely encode 2^49 numbers (49-32=17)
+/// STORED_KEY_BITS is 32 bits and we need to uniquely encode 2^49 numbers (49-32=17), where 2^49 is
+/// number of different keys to encode.
 const MAX_TABLE_SIZE: usize = 8388593;
-
-/// bits to retain in key (must be >= 49 bits).
-/// 42 (number of slots in board) + 7 (1 extra bit for number of columns)
-const KEY_BITS: u64 = 49;
 
 /// number of bits used to store the key. Even though we store
 const STORED_KEY_BITS: u64 = 32;
 
-/// mask for the playable region
-const KEY_BIT_MASK: u64 = (1 << KEY_BITS) - 1;
+/// 32 bit mask for finding the number of bits.
+const STORED_KEY_BIT_MASK: u64 = (1 << STORED_KEY_BITS) - 1;
 
-/// location of the lowest bits in evaluation. Must be greater than the number of bits used to
-/// store the key (which is 49).
-const EVAL_LOC: u64 = KEY_BITS + 1;
+/// location of the lowest bit of move in metadata.
+const MOVE_LOC: u64 = 2;
 
-/// Evals are 8 bits.
-const EVAL_BIT_MASK: u64 = ((1 << 8) - 1) << EVAL_LOC;
-
-/// location of the lowest flag bits
-const FLAG_LOC: u64 = EVAL_LOC + 8;
-
-/// Flag is 2 bits (one of enum lower, upper, exact)
-const FLAG_BIT_MASK: u64 = ((1 << 2) - 1) << FLAG_LOC;
-
-/// location of the move
-const MOVE_LOC: u64 = FLAG_LOC + 2;
-
-/// move is 3 bits.
-const MOVE_BIT_MASK: u64 = ((1 << 3) - 1) << MOVE_LOC;
+/// flag bits (lowest 2 bits of the metadata)
+const FLAG_BIT_MASK: u8 = 0b11;
 
 /// represents an entry of the transposition table.
 ///
-/// Storage format is {move (4), flag (2), eval (8), key (50)}
-/// move is one of 0-6 (minimum 3 bits)
-/// flag is one of LOWER, EXACT, UPPER
-/// eval is the evaluation (8 bits)
-/// key is the key of the board.
+/// stored_key: lower 32 bit of 49-bit board key.
+/// eval: evaluation of the position.
+/// metadata: { MOVE (u3), FLAG (u2) }
 #[derive(Debug, Clone)]
 pub struct Entry {
-    storage: u64
+    stored_key: u32,
+    eval: i8,
+    metadata: u8
 }
 
-pub type Flag = i8;
+pub type Flag = u8;
 pub const FLAG_EXACT: Flag = 0;
 pub const FLAG_UPPER: Flag = 1;
 pub const FLAG_LOWER: Flag = 2;
 
 impl Entry {
-    pub fn new(board_key: u64, evaluation: i8, flag: Flag, mv: u8) -> Self {
-        let mut storage = board_key & KEY_BIT_MASK;
-        let eval_bytes = evaluation.to_le_bytes();
-        let eval_bytes = u8::from_le_bytes(eval_bytes);
-        storage |= (eval_bytes as u64) << EVAL_LOC;
-        storage |= (flag as u64) << FLAG_LOC;
-        storage |= (mv as u64) << MOVE_LOC;
-        Self { storage }
+    pub fn new(board_key: u64, eval: i8, flag: Flag, mv: u8) -> Self {
+        let stored_key = (board_key & STORED_KEY_BIT_MASK) as u32;
+        let metadata = flag | (mv << MOVE_LOC);
+        Self { stored_key, eval, metadata }
     }
 
-    pub fn get_key(&self) -> u64 {
-        self.storage & KEY_BIT_MASK
+    pub fn get_key(&self) -> u32 {
+        self.stored_key
     }
 
     pub fn get_eval(&self) -> i8 {
-        let eval = (self.storage & EVAL_BIT_MASK) >> EVAL_LOC;
-        let byte = eval.to_le_bytes()[0];
-        i8::from_le_bytes([byte])
+        self.eval
     }
 
     pub fn get_flag(&self) -> Flag {
-        let flag = (self.storage as u64 & FLAG_BIT_MASK) >> FLAG_LOC;
-        flag as i8
+        self.metadata & FLAG_BIT_MASK
     }
 
     pub fn get_move(&self) -> u8 {
-        let mv = (self.storage as u64 & MOVE_BIT_MASK) >> MOVE_LOC;
-        mv as u8
+        self.metadata >> MOVE_LOC
     }
 }
 
 impl Default for Entry {
     fn default() -> Self {
-        Entry::new(u64::MAX, 0, FLAG_EXACT, EMPTY_MOVE)
+        Entry::new(u64::MAX, i8::MIN, FLAG_EXACT, EMPTY_MOVE)
     }
 }
 
@@ -137,9 +113,13 @@ impl TranspositionTable {
     /// obtains the selected entry, given a key.
     pub fn get_entry_with_key(&self, key: u64) -> Option<&Entry> {
         let loc = TranspositionTable::location(key);
-        let selected_entry = &self.table[loc];
+        let entry = &self.table[loc];
 
-        if selected_entry.get_key() == key { Some(selected_entry) }
-        else { None }
+        if entry.get_key() == (key & STORED_KEY_BIT_MASK) as u32 {
+            return Some(entry);
+        }
+        else {
+            None
+        }
     }
 }
