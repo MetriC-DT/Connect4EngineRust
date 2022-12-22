@@ -48,19 +48,27 @@ impl Explorer {
 
     pub fn solve(&mut self) -> MoveEvalPair {
         // TODO - check if move is in openings database.
+        let board_clone = self.board;
         let starter = MAX_SCORE + 1;
         let a = -starter;
         let b = starter;
 
-        let board_clone = self.board;
+        let mut best_pair = MoveEvalPair::new(EMPTY_MOVE, -starter);
 
-        let depth = SIZE - board_clone.moves_played();
-        if let Some(pair) = self.negamax_eval_pair(board_clone, depth, a, b) {
-            pair
+        let max_depth = SIZE - board_clone.moves_played() + 1;
+        for depth in 0..max_depth {
+            if let Some(pair) = self.negamax_eval_pair(board_clone, depth, a, b) {
+                let eval = pair.get_eval();
+                if eval > 0 {
+                    return pair;
+                }
+                else if eval > best_pair.get_eval() {
+                    best_pair = pair;
+                }
+            }
         }
-        else {
-            MoveEvalPair::new(EMPTY_MOVE, i8::MIN)
-        }
+
+        return best_pair;
     }
 
 
@@ -139,7 +147,12 @@ impl Explorer {
         //     self.transpositiontable.insert_with_key(board_key, value, FLAG_EXACT, mv);
         // }
 
-        Some(MoveEvalPair::new(mv, value))
+        if mv != EMPTY_MOVE {
+            Some(MoveEvalPair::new(mv, value))
+        }
+        else {
+            None
+        }
     }
 
     /// returns None if not game over. Otherwise, will
