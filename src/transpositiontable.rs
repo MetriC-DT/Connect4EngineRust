@@ -16,10 +16,10 @@ use crate::{board::Board, moves::EMPTY_MOVE};
 /// number of different keys to encode.
 const MAX_TABLE_SIZE: usize = 8388593;
 
-/// number of bits used to store the key. Even though we store
+/// number of bits used to store the key (refer to explanation above why we don't use all 49 bits.)
 const STORED_KEY_BITS: u64 = 32;
 
-/// 32 bit mask for finding the number of bits.
+/// 32 bit mask for finding the key bits to store.
 const STORED_KEY_BIT_MASK: u64 = (1 << STORED_KEY_BITS) - 1;
 
 /// location of the lowest bit of move in metadata.
