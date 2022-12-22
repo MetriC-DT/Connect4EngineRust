@@ -85,8 +85,7 @@ impl Explorer {
                 // ends the game right away is the current one.
 
                 // let player_val = val * self.board.get_current_player_signed();
-                let player_val = val;
-                return MoveEvalPair::new(col, player_val);
+                return MoveEvalPair::new(col, val);
             }
 
             // restore orig_board_copy
@@ -96,7 +95,8 @@ impl Explorer {
         // TODO - check if move is in openings database.
 
         // look up in transposition table
-        if let Some(entry) = self.transpositiontable.get_entry(&self.board) {
+        let board_key = self.get_board().get_unique_position_key();
+        if let Some(entry) = self.transpositiontable.get_entry_with_key(board_key) {
             let flag = entry.get_flag();
             let val = entry.get_eval();
             let mv = entry.get_move();
@@ -134,11 +134,11 @@ impl Explorer {
 
         // insert into transposition table.
         if value <= a_orig {
-            self.transpositiontable.insert(&self.board, value, FLAG_UPPER, mv);
+            self.transpositiontable.insert_with_key(board_key, value, FLAG_UPPER, mv);
         } else if value >= b {
-            self.transpositiontable.insert(&self.board, value, FLAG_LOWER, mv);
+            self.transpositiontable.insert_with_key(board_key, value, FLAG_LOWER, mv);
         } else {
-            self.transpositiontable.insert(&self.board, value, FLAG_EXACT, mv);
+            self.transpositiontable.insert_with_key(board_key, value, FLAG_EXACT, mv);
         }
 
         MoveEvalPair::new(mv, value)

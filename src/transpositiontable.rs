@@ -47,8 +47,6 @@ pub const FLAG_LOWER: Flag = 2;
 
 impl Entry {
     pub fn new(board_key: i64, evaluation: i8, flag: Flag, mv: u8) -> Self {
-        // we don't need to mask anything since board is guaranteed to not
-        // have anything in the bits above the 53.
         let mut storage = board_key & KEY_BIT_MASK;
         storage |= ((evaluation as i64) << EVAL_LOC) & EVAL_BIT_MASK;
         storage |= (flag as i64) << FLAG_LOC;
@@ -95,10 +93,14 @@ impl TranspositionTable {
         Self { table: vec![Entry::default(); MAX_TABLE_SIZE] }
     }
 
-    /// inserts the board game state and evaluation
-    /// into the transposition table.
+    /// inserts the board game state and evaluation into the transposition table.
     pub fn insert(&mut self, board: &Board, eval: i8, flag: Flag, mv: u8) {
         let key = board.get_unique_position_key();
+        self.insert_with_key(key, eval, flag, mv);
+    }
+
+    /// inserts the board game state and eval into transposition table using key.
+    pub fn insert_with_key(&mut self, key: i64, eval: i8, flag: Flag, mv: u8) {
         let entry = Entry::new(key, eval, flag, mv);
         self.table[TranspositionTable::location(key)] = entry;
     }
@@ -109,8 +111,14 @@ impl TranspositionTable {
         usize::from_le_bytes(keybytes) % MAX_TABLE_SIZE
     }
 
+    /// Gets the entry using the given board to calculate the key.
     pub fn get_entry(&self, board: &Board) -> Option<&Entry> {
         let key = board.get_unique_position_key();
+        self.get_entry_with_key(key)
+    }
+
+    /// obtains the selected entry, given a key.
+    pub fn get_entry_with_key(&self, key: i64) -> Option<&Entry> {
         let loc = TranspositionTable::location(key);
         let selected_entry = &self.table[loc];
 
