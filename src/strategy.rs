@@ -82,20 +82,20 @@ impl Explorer {
         }
 
         // look up in transposition table
-        let board_key = board.get_unique_position_key();
-        if let Some(entry) = self.transpositiontable.get_entry_with_key(board_key) {
-            let flag = entry.get_flag();
-            let val = entry.get_eval();
-            let mv = entry.get_move();
+        // let board_key = board.get_unique_position_key();
+        // if let Some(entry) = self.transpositiontable.get_entry_with_key(board_key) {
+        //     let flag = entry.get_flag();
+        //     let val = entry.get_eval();
+        //     let mv = entry.get_move();
 
-            if      flag == FLAG_EXACT { return Some(MoveEvalPair::new(mv, val)); }
-            else if flag == FLAG_LOWER { a = i8::max(a, val); }
-            else if flag == FLAG_UPPER { b = i8::min(b, val); }
+        //     if      flag == FLAG_EXACT { return Some(MoveEvalPair::new(mv, val)); }
+        //     else if flag == FLAG_LOWER { a = i8::max(a, val); }
+        //     else if flag == FLAG_UPPER { b = i8::min(b, val); }
 
-            if a >= b {
-                return Some(MoveEvalPair::new(mv, val));
-            }
-        }
+        //     if a >= b {
+        //         return Some(MoveEvalPair::new(mv, val));
+        //     }
+        // }
 
         if depth == 0 {
             return None;
@@ -131,13 +131,13 @@ impl Explorer {
         }
 
         // insert into transposition table.
-        if value <= a_orig {
-            self.transpositiontable.insert_with_key(board_key, value, FLAG_UPPER, mv);
-        } else if value >= b {
-            self.transpositiontable.insert_with_key(board_key, value, FLAG_LOWER, mv);
-        } else {
-            self.transpositiontable.insert_with_key(board_key, value, FLAG_EXACT, mv);
-        }
+        // if value <= a_orig {
+        //     self.transpositiontable.insert_with_key(board_key, value, FLAG_UPPER, mv);
+        // } else if value >= b {
+        //     self.transpositiontable.insert_with_key(board_key, value, FLAG_LOWER, mv);
+        // } else {
+        //     self.transpositiontable.insert_with_key(board_key, value, FLAG_EXACT, mv);
+        // }
 
         Some(MoveEvalPair::new(mv, value))
     }
