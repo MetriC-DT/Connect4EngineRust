@@ -62,12 +62,15 @@ fn run_game(line: &str) -> (usize, Board) {
     let mut turncount = 0;
     println!("{}", board);
 
-    while !explorer.board.is_game_over() {
+    while !explorer.get_board().is_game_over() {
         let (col, val) = explorer.solve().get_pair();
-        explorer.board.add(col).unwrap();
-        println!("{}\n{}", val, explorer.board);
+        let mut new_pos_board = explorer.get_board().clone();
+        assert!(new_pos_board.add(col).is_ok());
+
+        explorer.change_board(&new_pos_board);
+        println!("{}\n{}", val, new_pos_board);
         turncount += 1;
     }
 
-    (turncount, explorer.board)
+    (turncount, *explorer.get_board())
 }

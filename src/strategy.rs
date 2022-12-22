@@ -19,7 +19,7 @@ pub const EVALTABLE: [i16; SIZE as usize] = [
 
 #[derive(Debug)]
 pub struct Explorer {
-    pub board: Board,
+    board: Board,
     nodes_explored: usize,
     transpositiontable: TranspositionTable
 }
@@ -57,7 +57,8 @@ impl Explorer {
             let a = -starter;
             let b = starter;
 
-            self.negamax_eval_pair(a, b)
+            let board_clone = self.board;
+            self.negamax_eval_pair(board_clone, a, b)
         }
     }
 
@@ -66,17 +67,21 @@ impl Explorer {
     /// to the evaluation of the position.
     ///
     /// ASSUMES the game is not yet over.
-    fn negamax_eval_pair(&mut self, mut a: i8, mut b: i8) -> MoveEvalPair {
+    fn negamax_eval_pair(&mut self,
+                         board: Board,
+                         mut a: i8,
+                         mut b: i8) -> MoveEvalPair {
+
         // increment nodes searched.
         self.nodes_explored += 1;
 
-        let mut orig_board_copy = self.board.clone();
+        let mut board_cpy = board.clone();
 
         // quick endgame lookahead. checks if game ends in one move.
-        for col in self.board.get_valid_moves() {
-            orig_board_copy.add_unchecked(col);
+        for col in board.get_valid_moves() {
+            board_cpy.add_unchecked(col);
 
-            if let Some(val) = Explorer::game_over_eval(&orig_board_copy) {
+            if let Some(val) = Explorer::game_over_eval(&board_cpy) {
                 // README: Returning val instantly like this only works when
                 // the the player cannot hope to play another move that ends
                 // the game with a better result. For connect4, on the same move,
@@ -89,13 +94,13 @@ impl Explorer {
             }
 
             // restore orig_board_copy
-            orig_board_copy = self.board;
+            board_cpy = board;
         }
 
         // TODO - check if move is in openings database.
 
         // look up in transposition table
-        let board_key = self.get_board().get_unique_position_key();
+        let board_key = board.get_unique_position_key();
         if let Some(entry) = self.transpositiontable.get_entry_with_key(board_key) {
             let flag = entry.get_flag();
             let val = entry.get_eval();
@@ -115,10 +120,10 @@ impl Explorer {
         let a_orig = a;
 
         // evaluation value of position
-        for m in self.board.get_valid_moves() {
-            self.board.add_unchecked(m);
+        for m in board.get_valid_moves() {
+            board_cpy.add_unchecked(m);
 
-            let eval_val = -self.negamax_eval_pair(-b, -a).get_eval();
+            let eval_val = -self.negamax_eval_pair(board_cpy, -b, -a).get_eval();
             if eval_val > value {
                 value = eval_val;
                 mv = m;
@@ -127,7 +132,7 @@ impl Explorer {
             a = i8::max(a, value);
 
             // revert back to original position
-            self.board = orig_board_copy;
+            board_cpy = board;
 
             if a >= b { break; }
         }
