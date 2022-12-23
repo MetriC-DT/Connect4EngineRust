@@ -58,19 +58,22 @@ impl Explorer {
             let b = starter;
 
             let board_clone = self.board;
-            self.negamax_eval_pair(board_clone, a, b)
+            self.search(board_clone, a, b)
         }
     }
 
 
-    /// A `negamax` function that also generates a move in addition
-    /// to the evaluation of the position.
+    /// Searches for the most optimal evaluation and move with the given position.
+    /// Applies these optimizations:
+    /// * alpha-beta pruning
+    /// * negamax (principal variation search)
+    /// * transposition table
     ///
     /// ASSUMES the game is not yet over.
-    fn negamax_eval_pair(&mut self,
-                         board: Board,
-                         mut a: i8,
-                         mut b: i8) -> MoveEvalPair {
+    fn search(&mut self,
+              board: Board,
+              mut a: i8,
+              mut b: i8) -> MoveEvalPair {
 
         // increment nodes searched.
         self.nodes_explored += 1;
@@ -125,12 +128,12 @@ impl Explorer {
 
             let mut score;
             if i == 0 { // if first child, then assume it is the best move. Scan entire window.
-                score = -self.negamax_eval_pair(board_cpy, -b, -a).get_eval();
+                score = -self.search(board_cpy, -b, -a).get_eval();
             }
             else { // search with a null window.
-                score = -self.negamax_eval_pair(board_cpy, -a - 1, -a).get_eval();
+                score = -self.search(board_cpy, -a - 1, -a).get_eval();
                 if a < score && score < b { // if failed high, do a full re-search.
-                    score = -self.negamax_eval_pair(board_cpy, -b, -score).get_eval();
+                    score = -self.search(board_cpy, -b, -score).get_eval();
                 }
             }
 
