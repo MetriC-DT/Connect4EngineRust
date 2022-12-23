@@ -100,7 +100,7 @@ impl Explorer {
             }
         }
 
-        let (mut mv, mut value) = (EMPTY_MOVE, -MAX_SCORE);
+        let (mut mv, mut val) = (EMPTY_MOVE, -MAX_SCORE);
         let mut board_cpy = board;
         let mut first = true;
         let a_orig = a;
@@ -125,9 +125,9 @@ impl Explorer {
                 }
             }
 
-            if score > value {
-                (mv, value) = (m, score);
-                a = i8::max(a, score);
+            if score > val {
+                (mv, val) = (m, score);
+                a = i8::max(score, a);
             }
 
             if a >= b { break; }
@@ -137,15 +137,15 @@ impl Explorer {
         }
 
         // insert into transposition table.
-        if value <= a_orig {
-            self.transpositiontable.insert_with_key(board_key, value, FLAG_UPPER, mv);
-        } else if value >= b {
-            self.transpositiontable.insert_with_key(board_key, value, FLAG_LOWER, mv);
-        } else {
-            self.transpositiontable.insert_with_key(board_key, value, FLAG_EXACT, mv);
+        if val <= a_orig { // fail-low occured. This is an ALL node.
+            self.transpositiontable.insert_with_key(board_key, val, FLAG_UPPER, mv);
+        } else if a >= b { // fail-high beta cutoff occured. This is a CUT node.
+            self.transpositiontable.insert_with_key(board_key, val, FLAG_LOWER, mv);
+        } else { // This is the PV node.
+            self.transpositiontable.insert_with_key(board_key, val, FLAG_EXACT, mv);
         }
 
-        (mv, value)
+        (mv, val)
     }
 
     /// returns None if not game over. Otherwise, will
