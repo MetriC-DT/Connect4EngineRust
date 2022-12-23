@@ -5,9 +5,6 @@ use crate::board::{WIDTH, Board};
 pub const EMPTY_MOVE: u8 = u8::MAX;
 const DEFAULT_ORDER: [u8; WIDTH as usize] = [3, 2, 4, 1, 5, 0, 6];
 
-/// Pair to represent (move, evaluation).
-pub type MoveEvalPair = (u8, i8);
-
 /// representation for the allowed moves on a player's turn.
 ///
 /// REQUIRES that the given game has not been completed yet.

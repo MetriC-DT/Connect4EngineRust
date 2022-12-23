@@ -1,5 +1,5 @@
 use crate::transpositiontable::{TranspositionTable, FLAG_UPPER, FLAG_EXACT, FLAG_LOWER};
-use crate::moves::{MoveEvalPair, EMPTY_MOVE};
+use crate::moves::EMPTY_MOVE;
 use crate::board::{SIZE, Board};
 
 pub const MAX_SCORE: i8 = 1 + SIZE as i8;
@@ -47,7 +47,7 @@ impl Explorer {
     }
 
     /// returns the optimal move and evaluation for this explorer's current position.
-    pub fn solve(&mut self) -> MoveEvalPair {
+    pub fn solve(&mut self) -> (u8, i8) {
         // TODO - check if move is in openings database.
 
         // Checks if the game is already over.
@@ -65,7 +65,6 @@ impl Explorer {
         self.search(board_clone, depth, a, b)
     }
 
-
     /// Searches for the most optimal evaluation and move with the given position.
     /// Applies these optimizations:
     /// * alpha-beta pruning
@@ -75,7 +74,7 @@ impl Explorer {
               board: Board,
               depth: u8,
               mut a: i8,
-              mut b: i8) -> MoveEvalPair {
+              mut b: i8) -> (u8, i8) {
 
         // increment nodes searched.
         self.nodes_explored += 1;
