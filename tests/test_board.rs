@@ -123,11 +123,11 @@ fn test_signed_player() {
     let mut b = Board::new();
     let moves = "333336411113255454551522644040160606602022";
     for (i, col) in moves.chars().enumerate() {
-        let curr = b.get_current_player();
+        let curr = b.get_current_player() as u8;
         let scurr = b.get_current_player_signed();
 
-        assert_eq!(curr as u8, i as u8 % 2);
-        match curr as u8 {
+        assert_eq!(curr, i as u8 % 2);
+        match curr {
             0 => assert_eq!(1, scurr),
             1 => assert_eq!(-1, scurr),
             _ => assert!(false) // fails
