@@ -46,20 +46,22 @@ impl Explorer {
         &self.board
     }
 
+    /// returns the optimal move and evaluation for this explorer's current position.
     pub fn solve(&mut self) -> MoveEvalPair {
-        if let Some(eval) = Self::game_over_eval(&self.board) {
-            MoveEvalPair::new(EMPTY_MOVE, eval)
-        }
-        else {
-            // game is guaranteed to not be over. Therefore, we are
-            // allowed to call negamax_eval_pair.
-            let starter = MAX_SCORE + 1;
-            let a = -starter;
-            let b = starter;
+        // TODO - check if move is in openings database.
 
-            let board_clone = self.board;
-            self.search(board_clone, a, b)
+        // Checks if the game is already over.
+        if let Some(eval) = Self::game_over_eval(&self.board) {
+            return MoveEvalPair::new(EMPTY_MOVE, eval);
         }
+
+        // game is guaranteed to not be over. Therefore, we need to search.
+        let board_clone = self.board;
+        let starter = MAX_SCORE + 1;
+        let a = -starter;
+        let b = starter;
+
+        self.search(board_clone, a, b)
     }
 
 
@@ -99,8 +101,6 @@ impl Explorer {
             // restore orig_board_copy
             board_cpy = board;
         }
-
-        // TODO - check if move is in openings database.
 
         // look up in transposition table
         let board_key = board.get_unique_position_key();
