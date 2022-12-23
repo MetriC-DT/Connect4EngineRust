@@ -39,8 +39,7 @@ fn main() -> Result<(), String> {
 
     else {
         // TODO - run repl loop.
-        println!("TODO - Repl to be implemented.");
-        Ok(())
+        Err("TODO - Repl to be implemented.".to_string())
     }
 }
 
