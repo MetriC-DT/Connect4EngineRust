@@ -106,7 +106,7 @@ impl Explorer {
             let val = entry.get_eval();
             let mv = entry.get_move();
 
-            if      flag == FLAG_EXACT { return MoveEvalPair::new(mv, val); }
+            if flag == FLAG_EXACT { return MoveEvalPair::new(mv, val); }
             else if flag == FLAG_LOWER { a = i8::max(a, val); }
             else if flag == FLAG_UPPER { b = i8::min(b, val); }
 

@@ -96,7 +96,8 @@ impl TranspositionTable {
     /// inserts the board game state and eval into transposition table using key.
     pub fn insert_with_key(&mut self, key: u64, eval: i8, flag: Flag, mv: u8) {
         let entry = Entry::new(key, eval, flag, mv);
-        self.table[TranspositionTable::location(key)] = entry;
+        let loc = TranspositionTable::location(key);
+        self.table[loc] = entry;
     }
 
     /// obtains the location of the key into the transposition table.
@@ -115,7 +116,7 @@ impl TranspositionTable {
         let loc = TranspositionTable::location(key);
         let entry = &self.table[loc];
 
-        if entry.get_key() == (key & STORED_KEY_BIT_MASK) as u32 {
+        if (key & STORED_KEY_BIT_MASK) as u32 == entry.get_key()  {
             return Some(entry);
         }
         else {
