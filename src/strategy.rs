@@ -105,7 +105,7 @@ impl Explorer {
         let mut first = true;
         let a_orig = a;
 
-        // calculate evaluation. We need i to determine the first child.
+        // calculate evaluation.
         for m in board.get_valid_moves() {
             board_cpy.add_unchecked(m);
 
@@ -130,10 +130,10 @@ impl Explorer {
                 a = i8::max(a, score);
             }
 
+            if a >= b { break; }
+
             // revert back to original position
             board_cpy = board;
-
-            if a >= b { break; }
         }
 
         // insert into transposition table.
