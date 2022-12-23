@@ -101,8 +101,7 @@ impl Explorer {
             }
         }
 
-        let mut value = -MAX_SCORE;
-        let mut mv = EMPTY_MOVE;
+        let mut found_pair = MoveEvalPair::new(EMPTY_MOVE, -MAX_SCORE);
         let a_orig = a;
         let mut board_cpy = board;
 
@@ -121,10 +120,10 @@ impl Explorer {
                 }
             }
 
-            if score > value {
-                value = score;
-                mv = m;
-                a = i8::max(a, value);
+            if score > found_pair.get_eval() {
+                found_pair.set_eval(score);
+                found_pair.set_move(m);
+                a = i8::max(a, score);
             }
 
             // revert back to original position
@@ -134,6 +133,7 @@ impl Explorer {
         }
 
         // insert into transposition table.
+        let (mv, value) = found_pair.get_pair();
         if value <= a_orig {
             self.transpositiontable.insert_with_key(board_key, value, FLAG_UPPER, mv);
         } else if value >= b {
