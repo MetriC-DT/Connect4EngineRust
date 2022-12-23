@@ -58,10 +58,11 @@ impl Explorer {
         // game is guaranteed to not be over. Therefore, we need to search.
         let board_clone = self.board;
         let starter = MAX_SCORE + 1;
+        let mut depth = SIZE;
         let a = -starter;
         let b = starter;
 
-        self.search(board_clone, a, b)
+        self.search(board_clone, depth, a, b)
     }
 
 
@@ -70,10 +71,9 @@ impl Explorer {
     /// * alpha-beta pruning
     /// * negamax (principal variation search)
     /// * transposition table
-    ///
-    /// ASSUMES the game is not yet over.
     fn search(&mut self,
               board: Board,
+              depth: u8,
               mut a: i8,
               mut b: i8) -> MoveEvalPair {
 
@@ -112,13 +112,13 @@ impl Explorer {
 
             let mut score;
             if first { // if first child, then assume it is the best move. Scan entire window.
-                score = -self.search(board_cpy, -b, -a).get_eval();
+                score = -self.search(board_cpy, depth - 1, -b, -a).get_eval();
                 first = false;
             }
             else { // search with a null window.
-                score = -self.search(board_cpy, -a - 1, -a).get_eval();
+                score = -self.search(board_cpy, depth - 1, -a - 1, -a).get_eval();
                 if a < score && score < b { // if failed high, do a full re-search.
-                    score = -self.search(board_cpy, -b, -score).get_eval();
+                    score = -self.search(board_cpy, depth - 1, -b, -score).get_eval();
                 }
             }
 
