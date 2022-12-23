@@ -51,7 +51,7 @@ fn eval_position(position: &str) {
     println!("{}", board);
 
     let mut explorer = Explorer::with_board(board);
-    let (mv, eval) = explorer.solve().get_pair();
+    let (mv, eval) = explorer.solve();
 
     if mv == EMPTY_MOVE {
         let eval = eval * board.get_prev_player_signed();
@@ -83,13 +83,13 @@ fn test_files(filename: &str) -> io::Result<()> {
 
         // time the solve
         let start_time = Instant::now();
-        let evaluation = explorer.solve();
+        let (_, eval) = explorer.solve();
         let delta = start_time.elapsed().as_micros();
         totaltime += delta;
 
         println!("{}\t{}\t{}us\t{}",
                  &linestr.split(' ').next().unwrap(),
-                 evaluation.get_eval(),
+                 eval,
                  explorer.get_nodes_explored() - prev_nodecount,
                  delta);
 

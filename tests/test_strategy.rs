@@ -65,6 +65,16 @@ fn test_endgame_6() {
     assert_eq!(turncount, board.moves_played() as usize - line.len())
 }
 
+#[test]
+fn test_one_move_win() {
+    let line = "141414";
+    let (turncount, board) = run_game(line);
+    assert!(board.is_first_player_win());
+    assert!(!board.is_second_player_win());
+    assert!(!board.is_filled());
+    assert_eq!(turncount, 1);
+}
+
 /// runs the game, returning (num_turns, resulting board)
 fn run_game(line: &str) -> (usize, Board) {
     let board = Board::new_position(line);
@@ -73,7 +83,7 @@ fn run_game(line: &str) -> (usize, Board) {
     println!("{}", board);
 
     while !explorer.get_board().is_game_over() {
-        let (col, val) = explorer.solve().get_pair();
+        let (col, val) = explorer.solve();
         let mut new_pos_board = explorer.get_board().clone();
         assert!(new_pos_board.add(col).is_ok());
 

@@ -52,13 +52,13 @@ impl Explorer {
 
         // Checks if the game is already over.
         if let Some(eval) = Self::game_over_eval(&self.board) {
-            return MoveEvalPair::new(EMPTY_MOVE, eval);
+            (EMPTY_MOVE, eval);
         }
 
         // game is guaranteed to not be over. Therefore, we need to search.
         let board_clone = self.board;
         let starter = MAX_SCORE + 1;
-        let mut depth = SIZE;
+        let depth = SIZE;
         let a = -starter;
         let b = starter;
 
@@ -82,7 +82,7 @@ impl Explorer {
 
         // if game has ended, return evaluation.
         if let Some(eval) = Self::game_over_eval(&board) {
-            return MoveEvalPair::new(EMPTY_MOVE, -eval);
+            return (EMPTY_MOVE, -eval);
         }
 
         // look up evaluation in transposition table
@@ -92,19 +92,19 @@ impl Explorer {
             let val = entry.get_eval();
             let mv = entry.get_move();
 
-            if flag == FLAG_EXACT { return MoveEvalPair::new(mv, val); }
+            if flag == FLAG_EXACT { return (mv, val); }
             else if flag == FLAG_LOWER { a = i8::max(a, val); }
             else if flag == FLAG_UPPER { b = i8::min(b, val); }
 
             if a >= b {
-                return MoveEvalPair::new(mv, val);
+                return (mv, val);
             }
         }
 
-        let mut found_pair = MoveEvalPair::new(EMPTY_MOVE, -MAX_SCORE);
-        let a_orig = a;
+        let (mut mv, mut value) = (EMPTY_MOVE, -MAX_SCORE);
         let mut board_cpy = board;
         let mut first = true;
+        let a_orig = a;
 
         // calculate evaluation. We need i to determine the first child.
         for m in board.get_valid_moves() {
@@ -112,18 +112,22 @@ impl Explorer {
 
             let mut score;
             if first { // if first child, then assume it is the best move. Scan entire window.
-                score = -self.search(board_cpy, depth - 1, -b, -a).get_eval();
+                let (_, eval) = self.search(board_cpy, depth - 1, -b, -a);
+                score = -eval;
                 first = false;
             }
             else { // search with a null window.
-                score = -self.search(board_cpy, depth - 1, -a - 1, -a).get_eval();
+                let (_, eval) = self.search(board_cpy, depth - 1, -a - 1, -a);
+                score = -eval;
+
                 if a < score && score < b { // if failed high, do a full re-search.
-                    score = -self.search(board_cpy, depth - 1, -b, -score).get_eval();
+                    let (_, eval) = self.search(board_cpy, depth - 1, -b, -score);
+                    score = -eval;
                 }
             }
 
-            if score > found_pair.get_eval() {
-                found_pair.set(m, score);
+            if score > value {
+                (mv, value) = (m, score);
                 a = i8::max(a, score);
             }
 
@@ -134,7 +138,6 @@ impl Explorer {
         }
 
         // insert into transposition table.
-        let (mv, value) = found_pair.get_pair();
         if value <= a_orig {
             self.transpositiontable.insert_with_key(board_key, value, FLAG_UPPER, mv);
         } else if value >= b {
@@ -143,7 +146,7 @@ impl Explorer {
             self.transpositiontable.insert_with_key(board_key, value, FLAG_EXACT, mv);
         }
 
-        MoveEvalPair::new(mv, value)
+        (mv, value)
     }
 
     /// returns None if not game over. Otherwise, will

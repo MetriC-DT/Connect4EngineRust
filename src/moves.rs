@@ -5,6 +5,9 @@ use crate::board::{WIDTH, Board};
 pub const EMPTY_MOVE: u8 = u8::MAX;
 const DEFAULT_ORDER: [u8; WIDTH as usize] = [3, 2, 4, 1, 5, 0, 6];
 
+/// Pair to represent (move, evaluation).
+pub type MoveEvalPair = (u8, i8);
+
 /// representation for the allowed moves on a player's turn.
 ///
 /// REQUIRES that the given game has not been completed yet.
@@ -46,38 +49,5 @@ impl Iterator for Moves {
         }
 
         None
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct MoveEvalPair(u8, i8);
-
-impl MoveEvalPair {
-    pub fn new(mv: u8, score: i8) -> Self {
-        Self(mv, score)
-    }
-
-    pub fn set(&mut self, mv: u8, eval: i8) {
-        (self.0, self.1) = (mv, eval);
-    }
-
-    pub fn set_eval(&mut self, eval: i8) {
-        self.1 = eval;
-    }
-
-    pub fn set_move(&mut self, mv: u8) {
-        self.0 = mv;
-    }
-
-    pub fn get_eval(&self) -> i8 {
-        self.1
-    }
-
-    pub fn get_move(&self) -> u8 {
-        self.0
-    }
-
-    pub fn get_pair(&self) -> (u8, i8) {
-        (self.0, self.1)
     }
 }
