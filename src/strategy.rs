@@ -104,14 +104,16 @@ impl Explorer {
         let mut found_pair = MoveEvalPair::new(EMPTY_MOVE, -MAX_SCORE);
         let a_orig = a;
         let mut board_cpy = board;
+        let mut first = true;
 
         // calculate evaluation. We need i to determine the first child.
-        for (i, m) in board.get_valid_moves().enumerate() {
+        for m in board.get_valid_moves() {
             board_cpy.add_unchecked(m);
 
             let mut score;
-            if i == 0 { // if first child, then assume it is the best move. Scan entire window.
+            if first { // if first child, then assume it is the best move. Scan entire window.
                 score = -self.search(board_cpy, -b, -a).get_eval();
+                first = false;
             }
             else { // search with a null window.
                 score = -self.search(board_cpy, -a - 1, -a).get_eval();
