@@ -302,10 +302,6 @@ impl Board {
         self.total_board + self.board
     }
 
-    pub fn get_num_moves_played(&self) -> u8 {
-        self.moves_made
-    }
-
     /// returns true if game is over, false otherwise.
     pub fn is_game_over(&self) -> bool {
         self.is_first_player_win() ||
