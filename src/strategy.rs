@@ -46,6 +46,10 @@ impl Explorer {
         &self.board
     }
 
+    pub fn add_mv(&mut self, mv: u8) -> Result<(), &str> {
+        self.board.add(mv)
+    }
+
     /// returns the optimal move and evaluation for this explorer's current position.
     pub fn solve(&mut self) -> (u8, i8) {
         // TODO - check if move is in openings database.

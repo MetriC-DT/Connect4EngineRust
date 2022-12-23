@@ -85,11 +85,8 @@ fn run_game(line: &str) -> (usize, Board) {
 
     while !explorer.get_board().is_game_over() {
         let (col, val) = explorer.solve();
-        let mut new_pos_board = explorer.get_board().clone();
-        assert!(new_pos_board.add(col).is_ok());
-
-        explorer.change_board(&new_pos_board);
-        println!("Move {} Eval {}\n{}", col + 1, val, new_pos_board);
+        assert!(explorer.add_mv(col).is_ok());
+        println!("Move {} Eval {}\n{}", col, val, explorer.get_board());
         turncount += 1;
     }
 
