@@ -123,8 +123,7 @@ impl Explorer {
             }
 
             if score > found_pair.get_eval() {
-                found_pair.set_eval(score);
-                found_pair.set_move(m);
+                found_pair.set(m, score);
                 a = i8::max(a, score);
             }
 
