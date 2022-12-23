@@ -75,7 +75,7 @@ impl Explorer {
         // increment nodes searched.
         self.nodes_explored += 1;
 
-        let mut board_cpy = board.clone();
+        let mut board_cpy = board;
 
         // quick endgame lookahead. checks if game ends in one move.
         for col in board.get_valid_moves() {
@@ -119,17 +119,26 @@ impl Explorer {
         let mut mv = EMPTY_MOVE;
         let a_orig = a;
 
-        // evaluation value of position
-        for m in board.get_valid_moves() {
+        // calculate evaluation. We need i to determine the first child.
+        for (i, m) in board.get_valid_moves().enumerate() {
             board_cpy.add_unchecked(m);
 
-            let eval_val = -self.negamax_eval_pair(board_cpy, -b, -a).get_eval();
-            if eval_val > value {
-                value = eval_val;
-                mv = m;
+            let mut score;
+            if i == 0 { // if first child, then assume it is the best move. Scan entire window.
+                score = -self.negamax_eval_pair(board_cpy, -b, -a).get_eval();
+            }
+            else { // search with a null window.
+                score = -self.negamax_eval_pair(board_cpy, -a - 1, -a).get_eval();
+                if a < score && score < b { // if failed high, do a full re-search.
+                    score = -self.negamax_eval_pair(board_cpy, -b, -score).get_eval();
+                }
             }
 
-            a = i8::max(a, value);
+            if score > value {
+                value = score;
+                mv = m;
+                a = i8::max(a, value);
+            }
 
             // revert back to original position
             board_cpy = board;
