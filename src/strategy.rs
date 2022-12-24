@@ -86,12 +86,21 @@ impl Explorer {
 
         // game is guaranteed to not be over. Therefore, we need to search.
         let board_clone = self.board;
-        let starter = MAX_SCORE + 1;
-        let depth = SIZE;
-        let a = -starter;
-        let b = starter;
 
-        self.search(board_clone, depth, a, b)
+        // Since our score is calculated with best_score = MAX_SCORE - moves_played,
+        // we can use these bounds as our (a, b) window.
+        let starter: i8 = MAX_SCORE - self.board.moves_played() as i8;
+        let (min, max) = (-starter, starter + 1);
+
+        // we will use the null window to check if our score is higher or lower. We will basically
+        // use a binary search to home in on the correct node within the correct narrower window.
+        let (_mv, eval) = self.search(board_clone, 0, 1);
+
+        if eval > 0 {
+            self.search(board_clone, 0, max)
+        } else {
+            self.search(board_clone, min, 0)
+        }
     }
 
     /// Searches for the most optimal evaluation and move with the given position.
@@ -101,7 +110,6 @@ impl Explorer {
     /// * transposition table
     fn search(&mut self,
               board: Board,
-              depth: u8,
               mut a: i8,
               mut b: i8) -> (u8, i8) {
 
@@ -109,27 +117,27 @@ impl Explorer {
         self.nodes_explored += 1;
 
         // if game has ended, return evaluation.
-        if let Some(eval) = Self::game_over_eval(&board) {
-            return (EMPTY_MOVE, -eval);
-        }
+        // if let Some(eval) = Self::game_over_eval(&board) {
+        //     return (EMPTY_MOVE, -eval);
+        // }
 
         let mut board_cpy = board;
         // quick endgame lookahead. checks if game ends in one move.
-        // for col in board.get_valid_moves() {
-        //     board_cpy.add_unchecked(col);
-        //     if let Some(val) = Explorer::game_over_eval(&board_cpy) {
-        //         // README: Returning val instantly like this only works when
-        //         // the the player cannot hope to play another move that ends
-        //         // the game with a better result. For connect4, on the same move,
-        //         // the player cannot have a move that results in a draw and another
-        //         // that results in him winning. Therefore, the best and only move that
-        //         // ends the game right away is the current one.
-        //         // let player_val = val * self.board.get_current_player_signed();
-        //         return (col, val);
-        //     }
-        //     // restore orig_board_copy
-        //     board_cpy = board;
-        // }
+        for col in board.get_valid_moves() {
+            board_cpy.add_unchecked(col);
+            if let Some(val) = Explorer::game_over_eval(&board_cpy) {
+                // README: Returning val instantly like this only works when
+                // the the player cannot hope to play another move that ends
+                // the game with a better result. For connect4, on the same move,
+                // the player cannot have a move that results in a draw and another
+                // that results in him winning. Therefore, the best and only move that
+                // ends the game right away is the current one.
+                // let player_val = val * self.board.get_current_player_signed();
+                return (col, val);
+            }
+            // restore orig_board_copy
+            board_cpy = board;
+        }
 
         // the index to insert into the principal variation.
         // let pv_index = board.moves_played() as usize;
@@ -162,16 +170,16 @@ impl Explorer {
 
             let mut score;
             if first { // if first child, then assume it is the best move. Scan entire window.
-                let (_, eval) = self.search(board_cpy, depth - 1, -b, -a);
+                let (_, eval) = self.search(board_cpy, -b, -a);
                 score = -eval;
                 first = false;
             }
             else { // search with a null window.
-                let (_, eval) = self.search(board_cpy, depth - 1, -a - 1, -a);
+                let (_, eval) = self.search(board_cpy, -a - 1, -a);
                 score = -eval;
 
                 if a < score && score < b { // if failed high, do a full re-search.
-                    let (_, eval) = self.search(board_cpy, depth - 1, -b, -score);
+                    let (_, eval) = self.search(board_cpy, -b, -score);
                     score = -eval;
                 }
             }
