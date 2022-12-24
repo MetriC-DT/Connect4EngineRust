@@ -85,7 +85,6 @@ impl Explorer {
         }
 
         // game is guaranteed to not be over. Therefore, we need to search.
-
         // Since our score is calculated with best_score = MAX_SCORE - moves_played,
         // we can use these bounds as our (a, b) window.
         let starter: i8 = MAX_SCORE - self.board.moves_played() as i8;
@@ -94,15 +93,14 @@ impl Explorer {
 
         // we will use the null window to check if our score is higher or lower. We will basically
         // use a binary search to home in on the correct node within the correct narrower window.
-        while max - min > 1 {
-            let mid = (min + max) / 2;
-            (mv, eval) = self.search(self.board, mid, mid + 1);
 
-            if eval > mid {
-                min = mid;
-            } else {
-                max = mid;
-            }
+        while min < max { // iteratively narrow the min-max exploration window
+            let mut med = min + (max - min)/2;
+            if med <= 0 && min/2 < med { med = min/2 }
+            else if med >= 0 && max/2 > med { med = max/2 }
+            (mv, eval) = self.search(self.board, med, med + 1);   // use a null depth window to know if the actual score is greater or smaller than med
+            if eval <= med {max = eval}
+            else {min = eval}
         }
 
         (mv, eval)
