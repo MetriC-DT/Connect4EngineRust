@@ -93,14 +93,22 @@ impl Explorer {
 
         // we will use the null window to check if our score is higher or lower. We will basically
         // use a binary search to home in on the correct node within the correct narrower window.
-
-        while min < max { // iteratively narrow the min-max exploration window
+        while min < max {
             let mut med = min + (max - min)/2;
-            if med <= 0 && min/2 < med { med = min/2 }
-            else if med >= 0 && max/2 > med { med = max/2 }
-            (mv, eval) = self.search(self.board, med, med + 1);   // use a null depth window to know if the actual score is greater or smaller than med
-            if eval <= med {max = eval}
-            else {min = eval}
+            if med <= 0 && min/2 < med {
+                med = min/2;
+            }
+            else if med >= 0 && max/2 > med {
+                med = max/2;
+            }
+
+            (mv, eval) = self.search(self.board, med, med + 1); // the null window search
+            if eval <= med {
+                max = eval;
+            }
+            else {
+                min = eval;
+            }
         }
 
         (mv, eval)
