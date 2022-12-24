@@ -27,6 +27,7 @@ pub struct Explorer {
     nodes_explored: usize,
 
     /// Principle variation of the board (updated on `search` function).
+    /// TODO - IMPLEMENT. Maybe triangular PV table.
     pv: [u8; PV_SIZE],
 
     /// transposition table used by the explorer.
@@ -108,29 +109,27 @@ impl Explorer {
         self.nodes_explored += 1;
 
         // if game has ended, return evaluation.
-        // if let Some(eval) = Self::game_over_eval(&board) {
-        //     return (EMPTY_MOVE, -eval);
-        // }
-
-        let mut board_cpy = board;
-
-        // quick endgame lookahead. checks if game ends in one move.
-        for col in board.get_valid_moves() {
-            board_cpy.add_unchecked(col);
-            if let Some(val) = Explorer::game_over_eval(&board_cpy) {
-                // README: Returning val instantly like this only works when
-                // the the player cannot hope to play another move that ends
-                // the game with a better result. For connect4, on the same move,
-                // the player cannot have a move that results in a draw and another
-                // that results in him winning. Therefore, the best and only move that
-                // ends the game right away is the current one.
-                // let player_val = val * self.board.get_current_player_signed();
-                return (col, val);
-            }
-            // restore orig_board_copy
-            board_cpy = board;
+        if let Some(eval) = Self::game_over_eval(&board) {
+            return (EMPTY_MOVE, -eval);
         }
 
+        let mut board_cpy = board;
+        // quick endgame lookahead. checks if game ends in one move.
+        // for col in board.get_valid_moves() {
+        //     board_cpy.add_unchecked(col);
+        //     if let Some(val) = Explorer::game_over_eval(&board_cpy) {
+        //         // README: Returning val instantly like this only works when
+        //         // the the player cannot hope to play another move that ends
+        //         // the game with a better result. For connect4, on the same move,
+        //         // the player cannot have a move that results in a draw and another
+        //         // that results in him winning. Therefore, the best and only move that
+        //         // ends the game right away is the current one.
+        //         // let player_val = val * self.board.get_current_player_signed();
+        //         return (col, val);
+        //     }
+        //     // restore orig_board_copy
+        //     board_cpy = board;
+        // }
 
         // the index to insert into the principal variation.
         // let pv_index = board.moves_played() as usize;
