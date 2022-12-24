@@ -85,22 +85,27 @@ impl Explorer {
         }
 
         // game is guaranteed to not be over. Therefore, we need to search.
-        let board_clone = self.board;
 
         // Since our score is calculated with best_score = MAX_SCORE - moves_played,
         // we can use these bounds as our (a, b) window.
         let starter: i8 = MAX_SCORE - self.board.moves_played() as i8;
-        let (min, max) = (-starter, starter + 1);
+        let (mut min, mut max) = (-starter, starter);
+        let (mut mv, mut eval) = (EMPTY_MOVE, 0);
 
         // we will use the null window to check if our score is higher or lower. We will basically
         // use a binary search to home in on the correct node within the correct narrower window.
-        let (_mv, eval) = self.search(board_clone, 0, 1);
+        while max - min > 1 {
+            let mid = (min + max) / 2;
+            (mv, eval) = self.search(self.board, mid, mid + 1);
 
-        if eval > 0 {
-            self.search(board_clone, 0, max)
-        } else {
-            self.search(board_clone, min, 0)
+            if eval > mid {
+                min = mid;
+            } else {
+                max = mid;
+            }
         }
+
+        (mv, eval)
     }
 
     /// Searches for the most optimal evaluation and move with the given position.
@@ -125,6 +130,7 @@ impl Explorer {
         // quick endgame lookahead. checks if game ends in one move.
         for col in board.get_valid_moves() {
             board_cpy.add_unchecked(col);
+            self.nodes_explored += 1;
             if let Some(val) = Explorer::game_over_eval(&board_cpy) {
                 // README: Returning val instantly like this only works when
                 // the the player cannot hope to play another move that ends
