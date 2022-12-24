@@ -112,6 +112,26 @@ impl Explorer {
         //     return (EMPTY_MOVE, -eval);
         // }
 
+        let mut board_cpy = board;
+
+        // quick endgame lookahead. checks if game ends in one move.
+        for col in board.get_valid_moves() {
+            board_cpy.add_unchecked(col);
+            if let Some(val) = Explorer::game_over_eval(&board_cpy) {
+                // README: Returning val instantly like this only works when
+                // the the player cannot hope to play another move that ends
+                // the game with a better result. For connect4, on the same move,
+                // the player cannot have a move that results in a draw and another
+                // that results in him winning. Therefore, the best and only move that
+                // ends the game right away is the current one.
+                // let player_val = val * self.board.get_current_player_signed();
+                return (col, val);
+            }
+            // restore orig_board_copy
+            board_cpy = board;
+        }
+
+
         // the index to insert into the principal variation.
         // let pv_index = board.moves_played() as usize;
 
@@ -134,7 +154,6 @@ impl Explorer {
         }
 
         let (mut mv, mut val) = (EMPTY_MOVE, -MAX_SCORE);
-        let mut board_cpy = board;
         let mut first = true;
         let a_orig = a;
 
