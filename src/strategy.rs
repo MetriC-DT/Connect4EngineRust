@@ -4,6 +4,7 @@ use crate::board::{SIZE, Board};
 
 pub const MAX_SCORE: i8 = 1 + SIZE as i8;
 pub const TIE_SCORE: i8 = 0;
+pub const PV_SIZE: usize = SIZE as usize;
 
 // Evaluation table for number of possible 4-in-a-rows
 /*
@@ -19,8 +20,16 @@ pub const EVALTABLE: [i16; SIZE as usize] = [
 
 #[derive(Debug)]
 pub struct Explorer {
+    /// position to solve.
     board: Board,
+
+    /// number of nodes this explorer has searched.
     nodes_explored: usize,
+
+    /// Principle variation of the board (updated on `search` function).
+    pv: [u8; PV_SIZE],
+
+    /// transposition table used by the explorer.
     transpositiontable: TranspositionTable
 }
 
@@ -29,17 +38,21 @@ impl Explorer {
         let board = Board::new();
         let nodes_explored = 0;
         let transpositiontable = TranspositionTable::new();
-        Self { board, nodes_explored, transpositiontable }
+        let pv = [EMPTY_MOVE; PV_SIZE];
+        Self { board, pv, nodes_explored, transpositiontable }
     }
 
     pub fn with_board(board: Board) -> Self {
         let nodes_explored = 0;
         let transpositiontable = TranspositionTable::new();
-        Self { board, nodes_explored, transpositiontable }
+        let pv = [EMPTY_MOVE; PV_SIZE];
+        Self { board, pv, nodes_explored, transpositiontable }
     }
 
     pub fn change_board(&mut self, board: &Board) {
+        let pv = [EMPTY_MOVE; PV_SIZE];
         self.board = *board;
+        self.pv = pv;
     }
 
     pub fn get_board(&self) -> &Board {
@@ -48,6 +61,17 @@ impl Explorer {
 
     pub fn add_mv(&mut self, mv: u8) -> Result<(), &str> {
         self.board.add(mv)
+    }
+
+    pub fn get_pv(&self) -> &[u8] {
+        let first = self.get_board().moves_played() as usize;
+        let mut end: usize = first;
+        for i in first..PV_SIZE {
+            if self.pv[end] == EMPTY_MOVE { break; }
+            else { end = i }
+        }
+
+        &self.pv[first..=end]
     }
 
     /// returns the optimal move and evaluation for this explorer's current position.
@@ -84,9 +108,12 @@ impl Explorer {
         self.nodes_explored += 1;
 
         // if game has ended, return evaluation.
-        if let Some(eval) = Self::game_over_eval(&board) {
-            return (EMPTY_MOVE, -eval);
-        }
+        // if let Some(eval) = Self::game_over_eval(&board) {
+        //     return (EMPTY_MOVE, -eval);
+        // }
+
+        // the index to insert into the principal variation.
+        // let pv_index = board.moves_played() as usize;
 
         // look up evaluation in transposition table
         let board_key = board.get_unique_position_key();
@@ -95,11 +122,13 @@ impl Explorer {
             let val = entry.get_eval();
             let mv = entry.get_move();
 
-            if flag == FLAG_EXACT { return (mv, val); }
+            if flag == FLAG_EXACT {
+                return (mv, val);
+            }
             else if flag == FLAG_LOWER { a = i8::max(a, val); }
             else if flag == FLAG_UPPER { b = i8::min(b, val); }
 
-            if a >= b {
+            if a >= b { // CUT node.
                 return (mv, val);
             }
         }
@@ -129,26 +158,26 @@ impl Explorer {
                 }
             }
 
+            // revert back to original position
+            board_cpy = board;
+
             if score > val {
                 (mv, val) = (m, score);
                 a = i8::max(score, a);
             }
 
             if a >= b { break; }
-
-            // revert back to original position
-            board_cpy = board;
         }
 
         // insert into transposition table.
-        if val <= a_orig { // fail-low occured. This is an ALL node.
+        if val <= a_orig { // fail-low occurred. This is an ALL node.
             self.transpositiontable.insert_with_key(board_key, val, FLAG_UPPER, mv);
-        } else if a >= b { // fail-high beta cutoff occured. This is a CUT node.
+        } else if a >= b { // fail-high beta cutoff occurred. This is a CUT node.
+            // beta cutoff is guaranteed to not be part of the principal variation.
             self.transpositiontable.insert_with_key(board_key, val, FLAG_LOWER, mv);
         } else { // This is the PV node.
             self.transpositiontable.insert_with_key(board_key, val, FLAG_EXACT, mv);
         }
-
         (mv, val)
     }
 

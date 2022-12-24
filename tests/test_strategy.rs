@@ -85,6 +85,8 @@ fn run_game(line: &str) -> (usize, Board) {
 
     while !explorer.get_board().is_game_over() {
         let (col, val) = explorer.solve();
+        println!("{:?}", explorer.get_pv());
+
         assert!(explorer.add_mv(col).is_ok());
         println!("Move {} Eval {}\n{}", col, val, explorer.get_board());
         turncount += 1;
