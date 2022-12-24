@@ -78,7 +78,6 @@ fn test_files(filename: &str) -> io::Result<()> {
         let linestr = line?;
         count += 1;
         explorer.change_board(&Board::new_position(&linestr));
-        let prev_nodecount = explorer.get_nodes_explored();
 
         // time the solve
         let start_time = Instant::now();
@@ -86,11 +85,7 @@ fn test_files(filename: &str) -> io::Result<()> {
         let delta = start_time.elapsed().as_micros();
         totaltime += delta;
 
-        println!("{}\t{}\t{}us\t{}",
-                 &linestr.split(' ').next().unwrap(),
-                 eval,
-                 explorer.get_nodes_explored() - prev_nodecount,
-                 delta);
+        println!("{}\t{}", &linestr.split(' ').next().unwrap(), eval);
 
         io::stdout().flush()?
     }
