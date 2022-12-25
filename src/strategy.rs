@@ -1,4 +1,4 @@
-use crate::transpositiontable::{TranspositionTable, FLAG_UPPER, FLAG_EXACT, FLAG_LOWER};
+use crate::transpositiontable::{TranspositionTable, FLAG_UPPER, FLAG_LOWER};
 use crate::moves::EMPTY_MOVE;
 use crate::board::{SIZE, Board};
 
@@ -128,11 +128,6 @@ impl Explorer {
         // increment nodes searched.
         self.nodes_explored += 1;
 
-        // if game has ended, return evaluation.
-        // if let Some(eval) = Self::game_over_eval(&board) {
-        //     return (EMPTY_MOVE, -eval);
-        // }
-
         let mut board_cpy = board;
         // quick endgame lookahead. checks if game ends in one move.
         for col in board.get_valid_moves() {
@@ -162,10 +157,10 @@ impl Explorer {
             let val = entry.get_eval();
             let mv = entry.get_move();
 
-            if flag == FLAG_EXACT {
-                return (mv, val);
-            }
-            else if flag == FLAG_LOWER { a = i8::max(a, val); }
+            // if flag == FLAG_EXACT {
+            //     return (mv, val);
+            // }
+            if flag == FLAG_LOWER { a = i8::max(a, val); }
             else if flag == FLAG_UPPER { b = i8::min(b, val); }
 
             if a >= b { // CUT node.
@@ -214,9 +209,10 @@ impl Explorer {
         } else if a >= b { // fail-high beta cutoff occurred. This is a CUT node.
             // beta cutoff is guaranteed to not be part of the principal variation.
             self.transpositiontable.insert_with_key(board_key, val, FLAG_LOWER, mv);
-        } else { // This is the PV node.
-            self.transpositiontable.insert_with_key(board_key, val, FLAG_EXACT, mv);
-        }
+        } 
+        // else { // This is the PV node. We can't actually get this from PVS.
+        //     self.transpositiontable.insert_with_key(board_key, val, FLAG_EXACT, mv);
+        // }
         (mv, val)
     }
 
