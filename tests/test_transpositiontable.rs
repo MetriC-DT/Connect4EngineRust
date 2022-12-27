@@ -12,11 +12,10 @@ fn test_insert_get() {
     let mut table = TranspositionTable::new();
     assert!(table.get_entry(&board).is_none());
 
-    table.insert(&board, eval_hi, FLAG_UPPER, 4);
+    table.insert(&board, eval_hi, FLAG_UPPER);
     let entry = table.get_entry(&board).unwrap();
     assert_eq!(entry.get_eval(), eval_hi);
     assert_eq!(entry.get_flag(), FLAG_UPPER);
-    assert_eq!(entry.get_move(), 4);
 }
 
 #[test]
@@ -27,11 +26,10 @@ fn test_insert_get_negative() {
     let mut table = TranspositionTable::new();
     assert!(table.get_entry(&board).is_none());
 
-    table.insert(&board, eval_hi, FLAG_UPPER, 3);
+    table.insert(&board, eval_hi, FLAG_UPPER);
     let entry = table.get_entry(&board).unwrap();
     assert_eq!(entry.get_eval(), eval_hi);
     assert_eq!(entry.get_flag(), FLAG_UPPER);
-    assert_eq!(entry.get_move(), 3);
 }
 
 #[test]
@@ -42,15 +40,13 @@ fn test_evict() {
     let mut table = TranspositionTable::new();
     assert!(table.get_entry(&board).is_none());
 
-    table.insert(&board, eval_hi, FLAG_LOWER, 5);
+    table.insert(&board, eval_hi, FLAG_LOWER);
     let entry = table.get_entry(&board).unwrap();
     assert_eq!(entry.get_eval(), eval_hi);
     assert_eq!(entry.get_flag(), FLAG_LOWER);
-    assert_eq!(entry.get_move(), 5);
 
-    table.insert(&board, 0, FLAG_EXACT, 0);
+    table.insert(&board, 0, FLAG_EXACT);
     let entry = table.get_entry(&board).unwrap();
     assert_eq!(entry.get_eval(), 0);
     assert_eq!(entry.get_flag(), FLAG_EXACT);
-    assert_eq!(entry.get_move(), 0);
 }

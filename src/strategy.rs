@@ -23,12 +23,11 @@ pub struct Explorer {
     /// position to solve.
     board: Board,
 
+    /// moves that have been made on the board.
+    moves_played: u32,
+
     /// number of nodes this explorer has searched.
     nodes_explored: usize,
-
-    /// Principle variation of the board (updated on `search` function).
-    /// TODO - IMPLEMENT. Maybe triangular PV table.
-    pv: [u8; PV_SIZE],
 
     /// transposition table used by the explorer.
     transpositiontable: TranspositionTable
@@ -39,21 +38,20 @@ impl Explorer {
         let board = Board::new();
         let nodes_explored = 0;
         let transpositiontable = TranspositionTable::new();
-        let pv = [EMPTY_MOVE; PV_SIZE];
-        Self { board, pv, nodes_explored, transpositiontable }
+        let moves_played = board.moves_played();
+        Self { board, moves_played, nodes_explored, transpositiontable }
     }
 
     pub fn with_board(board: Board) -> Self {
         let nodes_explored = 0;
         let transpositiontable = TranspositionTable::new();
-        let pv = [EMPTY_MOVE; PV_SIZE];
-        Self { board, pv, nodes_explored, transpositiontable }
+        let moves_played = board.moves_played();
+        Self { board, moves_played, nodes_explored, transpositiontable }
     }
 
     pub fn change_board(&mut self, board: &Board) {
-        let pv = [EMPTY_MOVE; PV_SIZE];
         self.board = *board;
-        self.pv = pv;
+        self.moves_played = board.moves_played();
     }
 
     pub fn get_board(&self) -> &Board {
@@ -64,24 +62,35 @@ impl Explorer {
         self.board.add(mv)
     }
 
-    pub fn get_pv(&self) -> &[u8] {
-        let first = self.get_board().moves_played() as usize;
-        let mut end: usize = first;
-        for i in first..PV_SIZE {
-            if self.pv[end] == EMPTY_MOVE { break; }
-            else { end = i }
+    /// if we do not need the move, it is much faster to just call the get_eval function.
+    pub fn get_mv_eval(&mut self) -> (u8, i8) {
+        if let Some(eval) = self.game_over_eval() {
+            return (EMPTY_MOVE, -eval);
         }
 
-        &self.pv[first..=end]
+        let board_clone = self.board;
+        let mut move_scores = Vec::new();
+
+        for mv in self.board.get_valid_moves() {
+            self.board.play(mv);
+            let eval = -self.get_eval();
+            move_scores.push((mv, eval));
+            self.board = board_clone;
+        }
+
+        move_scores.sort_unstable_by_key(|(_mv, eval)| { *eval });
+        let &(mv, score) = move_scores.last().unwrap();
+        
+        (Board::pos_to_col(mv), score)
     }
 
     /// returns the optimal move and evaluation for this explorer's current position.
-    pub fn solve(&mut self) -> (u8, i8) {
+    pub fn get_eval(&mut self) -> i8 {
         // TODO - check if move is in openings database.
 
         // Checks if the game is already over.
-        if let Some(eval) = Self::game_over_eval(&self.board) {
-            (EMPTY_MOVE, eval);
+        if let Some(eval) = self.game_over_eval() {
+            return -eval;
         }
 
         // game is guaranteed to not be over. Therefore, we need to search.
@@ -90,7 +99,7 @@ impl Explorer {
         // Somehow, widening the window performs better.
         let starter: i8 = MAX_SCORE + 7 - self.board.moves_played() as i8;
         let (mut min, mut max) = (-starter, starter);
-        let (mut mv, mut eval) = (EMPTY_MOVE, 0);
+        let mut eval = 0;
 
         // we will use the null window to check if our score is higher or lower. We will basically
         // use a binary search to home in on the correct node within the correct narrower window.
@@ -103,7 +112,7 @@ impl Explorer {
                 med = max/2;
             }
 
-            (mv, eval) = self.search(self.board, med, med + 1); // the null window search
+            eval = self.search(med, med + 1); // the null window search
             if eval <= med {
                 max = eval;
             }
@@ -112,7 +121,7 @@ impl Explorer {
             }
         }
 
-        (mv, eval)
+        eval
     }
 
     /// Searches for the most optimal evaluation and move with the given position.
@@ -121,41 +130,44 @@ impl Explorer {
     /// * negamax (principal variation search)
     /// * transposition table
     fn search(&mut self,
-              board: Board,
               mut a: i8,
-              mut b: i8) -> (u8, i8) {
+              mut b: i8) -> i8 {
 
         // increment nodes searched.
         self.nodes_explored += 1;
 
-        let mut board_cpy = board;
+        let board_cpy = self.board;
+
         // quick endgame lookahead. checks if game ends in one move.
-        for col in board.get_valid_moves() {
-            board_cpy.add_unchecked(col);
+        for mv in self.board.get_valid_moves() {
+            self.board.play(mv);
+            self.moves_played += 1;
             self.nodes_explored += 1;
-            if let Some(val) = Explorer::game_over_eval(&board_cpy) {
+
+            if let Some(val) = self.game_over_eval() {
                 // README: Returning val instantly like this only works when
                 // the the player cannot hope to play another move that ends
                 // the game with a better result. For connect4, on the same move,
                 // the player cannot have a move that results in a draw and another
                 // that results in him winning. Therefore, the best and only move that
                 // ends the game right away is the current one.
-                // let player_val = val * self.board.get_current_player_signed();
-                return (col, val);
+                self.board = board_cpy;
+                self.moves_played -= 1;
+                return val;
             }
-            // restore orig_board_copy
-            board_cpy = board;
+            // restore original board.
+            self.moves_played -= 1;
+            self.board = board_cpy;
         }
 
         // the index to insert into the principal variation.
         // let pv_index = board.moves_played() as usize;
 
         // look up evaluation in transposition table
-        let board_key = board.get_unique_position_key();
+        let board_key = self.board.get_unique_position_key();
         if let Some(entry) = self.transpositiontable.get_entry_with_key(board_key) {
             let flag = entry.get_flag();
             let val = entry.get_eval();
-            let mv = entry.get_move();
 
             // if flag == FLAG_EXACT {
             //     return (mv, val);
@@ -164,39 +176,41 @@ impl Explorer {
             else if flag == FLAG_UPPER { b = i8::min(b, val); }
 
             if a >= b { // CUT node.
-                return (mv, val);
+                return val;
             }
         }
 
-        let (mut mv, mut val) = (EMPTY_MOVE, -MAX_SCORE);
+        let mut val = -MAX_SCORE;
         let mut first = true;
         let a_orig = a;
 
         // calculate evaluation.
-        for m in board.get_valid_moves() {
-            board_cpy.add_unchecked(m);
+        for m in self.board.get_valid_moves() {
+            self.board.play(m);
+            self.moves_played += 1;
 
             let mut score;
             if first { // if first child, then assume it is the best move. Scan entire window.
-                let (_, eval) = self.search(board_cpy, -b, -a);
+                let eval = self.search(-b, -a);
                 score = -eval;
                 first = false;
             }
             else { // search with a null window.
-                let (_, eval) = self.search(board_cpy, -a - 1, -a);
+                let eval = self.search(-a - 1, -a);
                 score = -eval;
 
                 if a < score && score < b { // if failed high, do a full re-search.
-                    let (_, eval) = self.search(board_cpy, -b, -score);
+                    let eval = self.search(-b, -score);
                     score = -eval;
                 }
             }
 
             // revert back to original position
-            board_cpy = board;
+            self.board = board_cpy;
+            self.moves_played -= 1;
 
             if score > val {
-                (mv, val) = (m, score);
+                val = score;
                 a = i8::max(score, a);
             }
 
@@ -205,30 +219,29 @@ impl Explorer {
 
         // insert into transposition table.
         if val <= a_orig { // fail-low occurred. This is an ALL node.
-            self.transpositiontable.insert_with_key(board_key, val, FLAG_UPPER, mv);
+            self.transpositiontable.insert_with_key(board_key, val, FLAG_UPPER);
         } else if a >= b { // fail-high beta cutoff occurred. This is a CUT node.
             // beta cutoff is guaranteed to not be part of the principal variation.
-            self.transpositiontable.insert_with_key(board_key, val, FLAG_LOWER, mv);
+            self.transpositiontable.insert_with_key(board_key, val, FLAG_LOWER);
         } 
         // else { // This is the PV node. We can't actually get this from PVS.
         //     self.transpositiontable.insert_with_key(board_key, val, FLAG_EXACT, mv);
         // }
-        (mv, val)
+        val
     }
 
     /// returns None if not game over. Otherwise, will
     /// return the evaluation of the board
-    pub fn game_over_eval(board: &Board) -> Option<i8> {
-        if board.is_player_win() {
+    pub fn game_over_eval(&self) -> Option<i8> {
+        if self.board.has_winner() {
             // Added size here so we can select the move that finishes the game 
             // the quickest.
-            let score: i8 = MAX_SCORE - board.moves_played() as i8;
-            // return Some(board.get_prev_player_signed() * score);
-            return Some(score);
+            let score: i8 = MAX_SCORE - self.moves_played as i8;
+            Some(score)
         }
 
         // if draw game
-        else if board.is_filled() { Some(TIE_SCORE) }
+        else if self.board.is_filled() { Some(TIE_SCORE) }
 
         // otherwise, the game is still ongoing.
         else { None }

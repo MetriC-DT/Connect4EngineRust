@@ -1,6 +1,7 @@
+use crate::moves::Moves;
 use std::fmt;
 
-use crate::moves::Moves;
+pub type Position = u64;
 
 /// Height of the connect 4 board
 pub const HEIGHT: u8 = 6;
@@ -15,13 +16,16 @@ pub const SIZE: u8 = WIDTH * HEIGHT;
 pub const DIRECTION: [usize; 4] = [1, 6, 7, 8];
 
 /// bit representation of the playable board.
-pub const PLAYABLE_REGION: u64 = 0b0111111_0111111_0111111_0111111_0111111_0111111_0111111;
+pub const PLAYABLE_REGION: Position = 0b0111111_0111111_0111111_0111111_0111111_0111111_0111111;
 
 /// mask for bottom row.
-pub const BOTTOM_ROW_MASK: u64 = 0b0000001_0000001_0000001_0000001_0000001_0000001_0000001;
+pub const BOTTOM_ROW_MASK: Position = 0b0000001_0000001_0000001_0000001_0000001_0000001_0000001;
+
+/// mask for top row.
+pub const TOP_ROW_MASK: Position = 0b0100000_0100000_0100000_0100000_0100000_0100000_0100000;
 
 /// mask for a column (0b111111)
-pub const COLUMN_MASK: u64 = (1 << HEIGHT) - 1;
+pub const COLUMN_MASK: Position = (1 << HEIGHT) - 1;
 
 /// number of items in every column, including extra top bit.
 pub const COUNTS_PER_COL: u8 = 7;
@@ -47,13 +51,11 @@ pub const COUNTS_PER_COL: u8 = 7;
 /// The `total_board` variable describes the OR of the two player's
 /// bitboards.
 ///
-/// The `board` variable describes the bitboard for player 1. In order
-/// to obtain the bitboard for player 0, we can XOR it with `total_board`.
+/// The `board` variable describes the bitboard for the current player.
 #[derive(Debug, Clone, Copy)]
 pub struct Board {
-    board: u64,
-    total_board: u64,
-    moves_made: u8
+    board: Position,
+    total_board: Position,
 }
 
 impl fmt::Display for Board {
@@ -90,7 +92,6 @@ impl Board {
         Self {
             board: 0,
             total_board: 0,
-            moves_made: 0,
         }
     }
 
@@ -112,14 +113,6 @@ impl Board {
         board
     }
 
-    /// Obtains the height of the specified column.
-    ///
-    /// 0 <= col < WIDTH
-    pub fn get_height(&self, col: u8) -> u8 {
-        let colmask: u64 = COLUMN_MASK << (col * COUNTS_PER_COL);
-        (self.total_board & colmask).count_ones() as u8
-    }
-
     /// obtains the value at the given row and col, if it exists.
     /// `row` counts from the bottom. Therefore, the bottommost row
     /// is equal to row `0` and the topmost is row `5`
@@ -138,14 +131,23 @@ impl Board {
         }
     }
 
+    /// used only for testing purposes. Should not use.
+    pub fn get_height(&self, col: u8) -> u8 {
+        let col_mask = COLUMN_MASK << (col * COUNTS_PER_COL);
+        let board_column = col_mask & self.total_board;
+        board_column.count_ones() as u8
+    }
+
     /// returns `true` if a new piece can be added into 
     /// the specified column.
-    pub fn can_add(&self, col: u8) -> bool {
+    fn can_add(&self, col: u8) -> bool {
         col < WIDTH && !Board::col_is_occupied(self.total_board, col)
     }
 
-    pub fn col_is_occupied(board: u64, col: u8) -> bool {
-        let top_bit = 1 << ((HEIGHT - 1) + col * COUNTS_PER_COL);
+    /// returns true if the entire column is occupied.
+    fn col_is_occupied(board: Position, col: u8) -> bool {
+        let col_mask = COLUMN_MASK << (col * COUNTS_PER_COL);
+        let top_bit = TOP_ROW_MASK & col_mask;
         (board & top_bit) != 0
     }
 
@@ -153,48 +155,76 @@ impl Board {
     /// then it throws an error.
     pub fn add(&mut self, col: u8) -> Result<(), &str> {
         if self.can_add(col) {
-            self.add_unchecked(col);
+            let possible = self.possible_moves();
+            let pos = Board::col_to_pos(possible, col);
+            self.play(pos);
             Ok(())
         } else {
             Err("Unable to add")
         }
     }
 
-    /// performs the add operation assuming that the selected column
-    /// can be added to.
-    ///
-    /// Undefined behavior if col cannot be added to.
-    pub fn add_unchecked(&mut self, col: u8) {
-        // updates the board
-        self.set_next_available(col);
-
-        // adds to history of moves
-        self.moves_made += 1;
+    /// converts the column [0, 6] to the bit position to play.
+    pub fn col_to_pos(possible: Position, col: u8) -> Position {
+        let col_mask = COLUMN_MASK << (col * COUNTS_PER_COL);
+        possible & col_mask
     }
 
-    /// sets the next available bit at `col`
-    fn set_next_available(&mut self, col: u8) {
-        let shift = col * COUNTS_PER_COL;
+    /// converts the bit position to play into a column.
+    pub fn pos_to_col(p: Position) -> u8 {
+        p.trailing_zeros() as u8 / COUNTS_PER_COL
+    }
 
-        // mask for the bottom of the column `col`. If we add
-        // this to total_board, then we can get the location of the
-        // next available slot in the column.
-        let mask: u64 = 1 << shift;
-        let col_mask: u64 = COLUMN_MASK << shift;
-        let new_position: u64 = (self.total_board & col_mask) + mask;
-        self.total_board |= new_position;
+    /// whether a given position move could be played.
+    pub fn valid_play_pos(pos: Position) -> bool {
+        pos != 0
+    }
 
-        // Equivalent statements.
-        if self.get_current_player() { self.board |= new_position }
-        // self.board |= -(self.get_current_player() as u64) & new_position;
-        // self.board |= new_position * u64::from(self.get_current_player());
+    /// obtains the position of possible moves. E.g.
+    ///
+    /// Total board:
+    /// _ _ _ _ _ _ _
+    /// _ _ _ _ _ _ _
+    /// _ _ _ _ _ _ _
+    /// _ _ O _ _ _ _
+    /// _ O X O _ _ _
+    /// X O X X _ _ _
+    ///
+    /// Possible moves are:
+    /// 0 0 0 0 0 0 0
+    /// 0 0 0 0 0 0 0
+    /// 0 0 1 0 0 0 0
+    /// 0 1 0 1 0 0 0
+    /// 1 0 0 0 0 0 0
+    /// 0 0 0 0 1 1 1
+    pub fn possible_moves(&self) -> Position {
+        (self.total_board + BOTTOM_ROW_MASK) & PLAYABLE_REGION
+    }
+
+    /// performs the add operation assuming that the selected position can be played.
+    /// Undefined behavior if position is not valid.
+    pub fn play(&mut self, pos: Position) {
+        // updates the board to the current player.
+        self.board ^= self.total_board;
+
+        // updates the board
+        self.total_board |= pos;
+        self.board |= pos;
+    }
+
+    pub fn revert(&mut self, pos: Position) {
+        // reverts the added position.
+        self.total_board ^= pos;
+        self.board ^= pos;
+
+        self.board ^= self.total_board;
     }
 
     /// returns true if the bitboard is a winner.
     ///
     /// We do not need an option for checking if this current player has lost
     /// because you cannot lose the game on the turn you played your move.
-    fn is_win(bitboard: u64) -> bool {
+    fn is_win(bitboard: Position) -> bool {
         for dir in DIRECTION {
             // checks two at a time for better efficiency.
             let bb = bitboard & (bitboard >> dir);
@@ -207,7 +237,7 @@ impl Board {
     }
 
     /// obtains the string representation of a bitboard.
-    pub fn get_bitboard_str(bitboard: u64) -> String {
+    pub fn get_bitboard_str(bitboard: Position) -> String {
         let mut s = String::with_capacity((SIZE + HEIGHT) as usize);
         for i in 0..SIZE {
             let c = i % WIDTH;
@@ -228,34 +258,25 @@ impl Board {
         s
     }
 
-    /// determines whether the first player has won
-    pub fn is_first_player_win(&self) -> bool {
-        let p1board = self.board ^ self.total_board;
-        Board::is_win(p1board)
-    }
-
-    pub fn is_second_player_win(&self) -> bool {
-        let p2board = self.board;
-        Board::is_win(p2board)
-    }
-
-    pub fn is_player_win(&self) -> bool {
-        self.is_first_player_win() || self.is_second_player_win()
-    }
-
     /// puts the valid moves into the given moves_vec
     pub fn get_valid_moves(&self) -> Moves {
-        Moves::new(self.total_board)
+        Moves::new(self.possible_moves())
     }
 
     /// checks whether the entire board is entirely filled.
     pub fn is_filled(&self) -> bool {
-        self.moves_made == SIZE
+        self.total_board == PLAYABLE_REGION
+    }
+
+    pub fn has_winner(&self) -> bool {
+        Board::is_win(self.board)
     }
 
     /// obtains the number of moves made.
-    pub fn moves_played(&self) -> u8 {
-        self.moves_made
+    /// Should not continue to call in heavy calculations. Instead, it is recommended to add and
+    /// subtract from a local variable as necessary whenever a move gets played.
+    pub fn moves_played(&self) -> u32 {
+        self.total_board.count_ones()
     }
 
     /// obtains the unique position key. This is calculated by
@@ -302,31 +323,11 @@ impl Board {
         self.total_board + self.board
     }
 
-    /// returns true if game is over, false otherwise.
-    pub fn is_game_over(&self) -> bool {
-        self.is_first_player_win() ||
-            self.is_second_player_win() ||
-            self.is_filled()
+    pub fn is_first_player_win(&self) -> bool {
+        return self.has_winner() && (self.moves_played() % 2 == 1)
     }
 
-    /// obtains the current player ID (either 0 or 1).
-    /// false = 0 => player 0
-    /// true  = 1 => player 1
-    pub fn get_current_player(&self) -> bool {
-        (self.moves_made & 1) != 0
-    }
-
-    /// obtains the current player as a signed number (1 for player 0, -1 for player 1)
-    pub fn get_current_player_signed(&self) -> i8 {
-        let neg_player = -(self.get_current_player() as i8);
-        let signed_player = (neg_player + 1) | neg_player;
-        signed_player
-    }
-
-    /// obtains the previous player as a signed number (1 for player 0, -1 for player 1)
-    pub fn get_prev_player_signed(&self) -> i8 {
-        let player = self.get_current_player() as i8;
-        let signed_player = (player - 1) | player;
-        signed_player
+    pub fn is_second_player_win(&self) -> bool {
+        return self.has_winner() && (self.moves_played() % 2 == 0)
     }
 }

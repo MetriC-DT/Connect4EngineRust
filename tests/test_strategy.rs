@@ -9,7 +9,6 @@ fn test_endgame_1() {
     assert!(board.is_first_player_win());
     assert!(!board.is_second_player_win());
     assert_eq!(0, turncount);
-    assert_eq!(usize::from(board.moves_played()), o_win_string.len());
 }
 
 #[test]
@@ -82,10 +81,10 @@ fn run_game(line: &str) -> (usize, Board) {
     let mut turncount = 0;
     println!("{}", board);
 
-    while !explorer.get_board().is_game_over() {
-        let (col, val) = explorer.solve();
-        println!("{:?}", explorer.get_pv());
+    while explorer.game_over_eval().is_none() {
+        let (col, val) = explorer.get_mv_eval();
 
+        println!("col {}", col);
         assert!(explorer.add_mv(col).is_ok());
         println!("Move {} Eval {}\n{}", col, val, explorer.get_board());
         turncount += 1;

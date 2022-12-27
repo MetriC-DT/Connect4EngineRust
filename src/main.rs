@@ -50,14 +50,12 @@ fn eval_position(position: &str) {
     println!("{}", board);
 
     let mut explorer = Explorer::with_board(board);
-    let (mv, eval) = explorer.solve();
+    let (mv, eval) = explorer.get_mv_eval();
 
     if mv == EMPTY_MOVE {
-        let eval = eval * board.get_prev_player_signed();
         println!("The game is already over. (Eval: {})", eval);
     }
     else {
-        let eval = eval * board.get_current_player_signed();
         let readable_mv = mv + 1; // mv used internally is 0-indexed.
         println!("Best Move: {} (Eval: {})", readable_mv, eval);
     }
@@ -81,7 +79,7 @@ fn test_files(filename: &str) -> io::Result<()> {
 
         // time the solve
         let start_time = Instant::now();
-        let (_, eval) = explorer.solve();
+        let eval = explorer.get_eval();
         let delta = start_time.elapsed().as_micros();
         totaltime += delta;
 

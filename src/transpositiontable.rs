@@ -1,4 +1,4 @@
-use crate::{board::Board, moves::EMPTY_MOVE};
+use crate::board::Board;
 
 /// Using the Chinese remainder theorem, using our key (which could be encoded in 49 bits), the
 /// two co-prime divisors are 2^(STORED_KEY_BITS) and MAX_TABLE_SIZE. Hence,
@@ -22,9 +22,6 @@ const STORED_KEY_BITS: u64 = 32;
 /// 32 bit mask for finding the key bits to store.
 const STORED_KEY_BIT_MASK: u64 = (1 << STORED_KEY_BITS) - 1;
 
-/// location of the lowest bit of move in metadata.
-const MOVE_LOC: u64 = 2;
-
 /// flag bits (lowest 2 bits of the metadata)
 const FLAG_BIT_MASK: u8 = 0b11;
 
@@ -46,9 +43,9 @@ pub const FLAG_UPPER: Flag = 1;
 pub const FLAG_LOWER: Flag = 2;
 
 impl Entry {
-    pub fn new(board_key: u64, eval: i8, flag: Flag, mv: u8) -> Self {
+    pub fn new(board_key: u64, eval: i8, flag: Flag) -> Self {
         let stored_key = (board_key & STORED_KEY_BIT_MASK) as u32;
-        let metadata = flag | (mv << MOVE_LOC);
+        let metadata = flag;
         Self { stored_key, eval, metadata }
     }
 
@@ -63,15 +60,11 @@ impl Entry {
     pub fn get_flag(&self) -> Flag {
         self.metadata & FLAG_BIT_MASK
     }
-
-    pub fn get_move(&self) -> u8 {
-        self.metadata >> MOVE_LOC
-    }
 }
 
 impl Default for Entry {
     fn default() -> Self {
-        Entry::new(u64::MAX, i8::MIN, FLAG_EXACT, EMPTY_MOVE)
+        Entry::new(u64::MAX, i8::MIN, FLAG_EXACT)
     }
 }
 
@@ -88,14 +81,14 @@ impl TranspositionTable {
     }
 
     /// inserts the board game state and evaluation into the transposition table.
-    pub fn insert(&mut self, board: &Board, eval: i8, flag: Flag, mv: u8) {
+    pub fn insert(&mut self, board: &Board, eval: i8, flag: Flag) {
         let key = board.get_unique_position_key();
-        self.insert_with_key(key, eval, flag, mv);
+        self.insert_with_key(key, eval, flag);
     }
 
     /// inserts the board game state and eval into transposition table using key.
-    pub fn insert_with_key(&mut self, key: u64, eval: i8, flag: Flag, mv: u8) {
-        let entry = Entry::new(key, eval, flag, mv);
+    pub fn insert_with_key(&mut self, key: u64, eval: i8, flag: Flag) {
+        let entry = Entry::new(key, eval, flag);
         let loc = TranspositionTable::location(key);
         self.table[loc] = entry;
     }

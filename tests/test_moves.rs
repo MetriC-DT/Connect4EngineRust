@@ -7,6 +7,7 @@ fn test_moves_ordering() {
 
     let ordering = [3, 2, 4, 1, 5, 0, 6];
     for (mv, col) in mvs.zip(ordering) {
-        assert_eq!(mv, col);
+        let mv_col = Board::pos_to_col(mv);
+        assert_eq!(mv_col, col);
     }
 }
