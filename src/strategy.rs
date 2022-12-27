@@ -1,6 +1,6 @@
 use crate::transpositiontable::{TranspositionTable, FLAG_UPPER, FLAG_LOWER};
 use crate::moves::EMPTY_MOVE;
-use crate::board::{SIZE, Board};
+use crate::board::{SIZE, Board, Position};
 
 pub const MAX_SCORE: i8 = 1 + SIZE as i8;
 pub const TIE_SCORE: i8 = 0;
@@ -62,6 +62,16 @@ impl Explorer {
         self.board.add(mv)
     }
 
+    fn play(&mut self, mv: Position) {
+        self.board.play(mv);
+        self.moves_played += 1;
+    }
+
+    fn revert(&mut self, board: Board) {
+        self.board = board;
+        self.moves_played -= 1;
+    }
+
     /// if we do not need the move, it is much faster to just call the get_eval function.
     pub fn get_mv_eval(&mut self) -> (u8, i8) {
         if let Some(eval) = self.game_over_eval() {
@@ -72,10 +82,10 @@ impl Explorer {
         let mut move_scores = Vec::new();
 
         for mv in self.board.get_valid_moves() {
-            self.board.play(mv);
+            self.play(mv);
             let eval = -self.get_eval();
             move_scores.push((mv, eval));
-            self.board = board_clone;
+            self.revert(board_clone);
         }
 
         move_scores.sort_unstable_by_key(|(_mv, eval)| { *eval });
@@ -140,9 +150,7 @@ impl Explorer {
 
         // quick endgame lookahead. checks if game ends in one move.
         for mv in self.board.get_valid_moves() {
-            self.board.play(mv);
-            self.moves_played += 1;
-            self.nodes_explored += 1;
+            self.play(mv);
 
             if let Some(val) = self.game_over_eval() {
                 // README: Returning val instantly like this only works when
@@ -151,13 +159,11 @@ impl Explorer {
                 // the player cannot have a move that results in a draw and another
                 // that results in him winning. Therefore, the best and only move that
                 // ends the game right away is the current one.
-                self.board = board_cpy;
-                self.moves_played -= 1;
+                self.revert(board_cpy);
                 return val;
             }
             // restore original board.
-            self.moves_played -= 1;
-            self.board = board_cpy;
+            self.revert(board_cpy);
         }
 
         // the index to insert into the principal variation.
@@ -186,8 +192,7 @@ impl Explorer {
 
         // calculate evaluation.
         for m in self.board.get_valid_moves() {
-            self.board.play(m);
-            self.moves_played += 1;
+            self.play(m);
 
             let mut score;
             if first { // if first child, then assume it is the best move. Scan entire window.
@@ -206,8 +211,7 @@ impl Explorer {
             }
 
             // revert back to original position
-            self.board = board_cpy;
-            self.moves_played -= 1;
+            self.revert(board_cpy);
 
             if score > val {
                 val = score;
@@ -236,7 +240,7 @@ impl Explorer {
         if self.board.has_winner() {
             // Added size here so we can select the move that finishes the game 
             // the quickest.
-            let score: i8 = MAX_SCORE - self.moves_played as i8;
+            let score: i8 = MAX_SCORE + 1 - self.moves_played as i8;
             Some(score)
         }
 
