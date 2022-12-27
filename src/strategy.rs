@@ -107,7 +107,7 @@ impl Explorer {
         // Since our score is calculated with best_score = MAX_SCORE - moves_played,
         // we can use these bounds as our (a, b) window.
         // Somehow, widening the window performs better.
-        let starter: i8 = MAX_SCORE + 7 - self.board.moves_played() as i8;
+        let starter: i8 = MAX_SCORE - self.board.moves_played() as i8;
         let (mut min, mut max) = (-starter, starter);
         let mut eval = 0;
 
@@ -164,6 +164,11 @@ impl Explorer {
             }
             // restore original board.
             self.revert(board_cpy);
+        }
+
+        b = i8::min(b, MAX_SCORE - self.moves_played as i8);
+        if a >= b {
+            return b;
         }
 
         // the index to insert into the principal variation.
@@ -227,7 +232,7 @@ impl Explorer {
         } else if a >= b { // fail-high beta cutoff occurred. This is a CUT node.
             // beta cutoff is guaranteed to not be part of the principal variation.
             self.transpositiontable.insert_with_key(board_key, val, FLAG_LOWER);
-        } 
+        }
         // else { // This is the PV node. We can't actually get this from PVS.
         //     self.transpositiontable.insert_with_key(board_key, val, FLAG_EXACT, mv);
         // }
@@ -240,7 +245,7 @@ impl Explorer {
         if self.board.has_winner() {
             // Added size here so we can select the move that finishes the game 
             // the quickest.
-            let score: i8 = MAX_SCORE + 1 - self.moves_played as i8;
+            let score: i8 = MAX_SCORE - self.moves_played as i8;
             Some(score)
         }
 

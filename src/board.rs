@@ -12,9 +12,6 @@ pub const WIDTH: u8 = 7;
 /// Total number of elements of the board.
 pub const SIZE: u8 = WIDTH * HEIGHT;
 
-/// down, up-left, left, down-left directions of bitboard
-pub const DIRECTION: [usize; 4] = [1, 6, 7, 8];
-
 /// bit representation of the playable board.
 pub const PLAYABLE_REGION: Position = 0b0111111_0111111_0111111_0111111_0111111_0111111_0111111;
 
@@ -29,6 +26,9 @@ pub const COLUMN_MASK: Position = (1 << HEIGHT) - 1;
 
 /// number of items in every column, including extra top bit.
 pub const COUNTS_PER_COL: u8 = 7;
+
+/// down, up-left, left, down-left directions of bitboard
+pub const DIRECTION: [u8; 4] = [1, COUNTS_PER_COL - 1, COUNTS_PER_COL, COUNTS_PER_COL + 1];
 
 /// Bitboard implementation of the Connect 4 Board.
 /// 
