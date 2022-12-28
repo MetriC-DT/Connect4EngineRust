@@ -166,15 +166,15 @@ impl Explorer {
             self.revert(board_cpy);
         }
 
-        // the unique key to represent the board in order to insert or search transposition table.
-        let board_key = self.board.get_unique_position_key();
-
         // if b is greater than the maximum possible score we can achieve, we can lower the bounds.
         // This gives us additional chances to see if we can prune.
         b = i8::min(b, MAX_SCORE - self.moves_played as i8);
         if a >= b {
             return b;
         }
+
+        // the unique key to represent the board in order to insert or search transposition table.
+        let board_key = self.board.get_unique_position_key();
 
         // look up evaluation in transposition table
         if let Some(entry) = self.transpositiontable.get_entry_with_key(board_key) {
