@@ -125,6 +125,12 @@ impl Explorer {
         // increment nodes searched.
         self.nodes_explored += 1;
 
+        if self.board.is_filled() { // the position is drawn.
+            // we do not need to check if move is win, because this is already checked before the
+            // recursive call.
+            return (EMPTY_MOVE, 0);
+        }
+
         // if b is greater than the maximum possible score we can achieve, we can lower the bounds.
         // This gives us additional chances to see if we can prune.
         b = i8::min(b, MAX_SCORE - self.moves_played as i8);
@@ -132,22 +138,14 @@ impl Explorer {
             return (EMPTY_MOVE, b);
         }
 
-        // quick endgame lookahead. checks if game ends in one move.
+        // quick endgame lookahead. checks if can win in 1 move.
         for (mv, col) in self.board.get_valid_moves() {
-            self.play(mv);
+            let pos = self.board.get_curr_player_pos() | mv;
+            let pos_eval = Explorer::win_eval(pos, self.moves_played as u8);
 
-            if let Some(val) = self.game_over_eval() {
-                // README: Returning val instantly like this only works when
-                // the the player cannot hope to play another move that ends
-                // the game with a better result. For connect4, on the same move,
-                // the player cannot have a move that results in a draw and another
-                // that results in him winning. Therefore, the best and only move that
-                // ends the game right away is the current one.
-                self.revert(mv);
-                return (col, val);
+            if pos_eval > 0 {
+                return (col, pos_eval);
             }
-            // restore original board.
-            self.revert(mv);
         }
 
         // the unique key to represent the board in order to insert or search transposition table.
@@ -209,6 +207,15 @@ impl Explorer {
         self.transpositiontable.insert_with_key(board_key, val, FLAG_UPPER, col);
 
         (col, val)
+    }
+
+    /// returns positive number upon winning. 0 for not win.
+    fn win_eval(pos: Position, moves_played: u8) -> i8 {
+        if Board::is_win(pos) {
+            MAX_SCORE - 1 - moves_played as i8
+        } else {
+            0
+        }
     }
 
     /// returns None if not game over. Otherwise, will

@@ -244,7 +244,7 @@ impl Board {
     ///
     /// We do not need an option for checking if this current player has lost
     /// because you cannot lose the game on the turn you played your move.
-    fn is_win(bitboard: Position) -> bool {
+    pub fn is_win(bitboard: Position) -> bool {
         for dir in DIRECTION {
             // checks two at a time for better efficiency.
             let bb = bitboard & (bitboard >> dir);
@@ -276,6 +276,10 @@ impl Board {
             };
         }
         s
+    }
+
+    pub fn get_curr_player_pos(&self) -> Position {
+        self.total_board ^ self.board
     }
 
     /// puts the valid moves into the given moves_vec
