@@ -125,6 +125,13 @@ impl Explorer {
         // increment nodes searched.
         self.nodes_explored += 1;
 
+        // if b is greater than the maximum possible score we can achieve, we can lower the bounds.
+        // This gives us additional chances to see if we can prune.
+        b = i8::min(b, MAX_SCORE - self.moves_played as i8);
+        if a >= b {
+            return (EMPTY_MOVE, b);
+        }
+
         let board_cpy = self.board;
 
         // quick endgame lookahead. checks if game ends in one move.
@@ -143,13 +150,6 @@ impl Explorer {
             }
             // restore original board.
             self.revert(board_cpy);
-        }
-
-        // if b is greater than the maximum possible score we can achieve, we can lower the bounds.
-        // This gives us additional chances to see if we can prune.
-        b = i8::min(b, MAX_SCORE - self.moves_played as i8);
-        if a >= b {
-            return (EMPTY_MOVE, b);
         }
 
         // the unique key to represent the board in order to insert or search transposition table.
