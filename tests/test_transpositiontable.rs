@@ -6,7 +6,7 @@ use connect4engine::transpositiontable::FLAG_LOWER;
 
 #[test]
 fn test_insert_get() {
-    let board = Board::new_position("44444752222436656566263375515127171771313");
+    let board = Board::new_position("44444752222436656566263375515127171771313").unwrap();
     let eval_hi = 5;
 
     let mut table = TranspositionTable::new();
@@ -21,7 +21,7 @@ fn test_insert_get() {
 
 #[test]
 fn test_insert_get_negative() {
-    let board = Board::new_position("44444752222436656566263375515127171771313");
+    let board = Board::new_position("44444752222436656566263375515127171771313").unwrap();
     let eval_hi = -1;
 
     let mut table = TranspositionTable::new();
@@ -36,7 +36,7 @@ fn test_insert_get_negative() {
 
 #[test]
 fn test_evict() {
-    let board = Board::new_position("44444752222436656566263375515127171771313");
+    let board = Board::new_position("44444752222436656566263375515127171771313").unwrap();
     let eval_hi = 10;
 
     let mut table = TranspositionTable::new();

@@ -76,7 +76,7 @@ fn test_one_move_win() {
 
 /// runs the game, returning (num_turns, resulting board)
 fn run_game(line: &str) -> (usize, Board) {
-    let board = Board::new_position(line);
+    let board = Board::new_position(line).unwrap();
     let mut explorer = Explorer::with_board(board);
     let mut turncount = 0;
     println!("{}", board);

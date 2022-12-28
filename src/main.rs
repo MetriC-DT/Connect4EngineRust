@@ -1,3 +1,4 @@
+use connect4engine::moves::EMPTY_MOVE;
 use connect4engine::{strategy::Explorer, board::Board};
 use std::fs;
 use std::time::Instant;
@@ -25,25 +26,63 @@ fn main() -> Result<()> {
 
     if let Some(filename) = args.test_file {
         test_files(&filename)?;
-        Ok(())
     }
 
     // Plays from the given position, if it exists. default creates a new board.
     else if let Some(position) = args.play {
         play_position(&position)?;
-        Ok(())
     }
 
     else {
-        // TODO - read from stdin.
-        todo!("TODO - Reading from stdin incomplete.")
+        eval_from_stdin()?;
     }
+
+    Ok(())
+}
+
+
+/// reads positions from stdin and outputs the evaluation and best move into stdout.
+fn eval_from_stdin() -> Result<()> {
+    let mut buf = String::new();
+    let mut explorer = Explorer::new();
+
+    loop {
+        buf.clear();
+        let r = io::stdin().read_line(&mut buf)?;
+
+        // EOF was reached.
+        if r == 0 { break; }
+
+        // we want to write the corresponding (mv, eval) pair.
+        let b = Board::new_position(&buf.trim());
+        if let Err(s) = b {
+            // if cannot enter new position, print the error message.
+            println!("{}", s);
+            continue;
+        }
+
+        // new position has been inputted. We can solve.
+        let board = b.unwrap();
+        explorer.change_board(&board);
+        let (mv, eval) = explorer.solve();
+
+        // we want to output the columns in [1-7].
+        if mv == EMPTY_MOVE {
+            println!("{} {}", EMPTY_MOVE, eval);
+        }
+        else {
+            println!("{} {}", mv + 1, eval);
+        }
+
+    }
+
+    Ok(())
 }
 
 
 /// plays the game from the given position.
 fn play_position(position: &str) -> Result<()> {
-    let mut board = Board::new_position(position);
+    let mut board = Board::new_position(position)?;
 
     let mut explorer = Explorer::new();
 
@@ -116,7 +155,7 @@ fn play_position(position: &str) -> Result<()> {
 /// runs all of the tests from the given test file.
 /// The format of the test file is:
 /// [position] [evaluation]
-fn test_files(filename: &str) -> io::Result<()> {
+fn test_files(filename: &str) -> Result<()> {
     let file = fs::File::open(filename)?;
     let reader = BufReader::new(file);
     let mut explorer = Explorer::new();
@@ -127,7 +166,7 @@ fn test_files(filename: &str) -> io::Result<()> {
     for line in reader.lines() {
         let linestr = line?;
         count += 1;
-        explorer.change_board(&Board::new_position(&linestr));
+        explorer.change_board(&Board::new_position(&linestr)?);
 
         // time the solve
         let start_time = Instant::now();

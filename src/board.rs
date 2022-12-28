@@ -101,17 +101,30 @@ impl Board {
     /// The position string is a string that begins with col numbers [1-7]. The instance that a
     /// non-numerical character is encountered, this function will end and stop adding any more
     /// pieces to the board. (example position string in `test_inputs/`)
-    pub fn new_position(position: &str) -> Self {
+    pub fn new_position(position: &str) -> Result<Self> {
         let mut board = Board::new();
-        for c in position.chars() {
-            if let Some(col) = c.to_digit(10) {
-                board.add(col as u8 - 1).unwrap();
+        for (i, c) in position.chars().enumerate() {
+            let mv = c.to_digit(10);
+            if let None = mv {
+                bail!("Invalid character in position {}", i);
             }
-            else {
-                break;
+
+            let mv = mv.unwrap().checked_sub(1);
+            if let None = mv {
+                bail!("Invalid character in position {}", i);
+            }
+
+            let col: Result<u8, _> = mv.unwrap().try_into();
+            if let Err(_) = col {
+                bail!("Invalid character in position {}", i);
+            }
+
+            if let Err(_) = board.add(col.unwrap()) {
+                bail!("Invalid character in position {}", i);
             }
         }
-        board
+
+        Ok(board)
     }
 
     /// obtains the value at the given row and col, if it exists.
