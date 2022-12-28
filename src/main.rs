@@ -167,8 +167,9 @@ fn test_files(filename: &str) -> Result<()> {
 
     for line in reader.lines() {
         let linestr = line?;
+        let linestr = linestr.split(" ").next().unwrap();
         count += 1;
-        explorer.change_board(&Board::new_position(&linestr)?);
+        explorer.change_board(&Board::new_position(linestr)?);
 
         // time the solve
         let start_time = Instant::now();
