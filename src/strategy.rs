@@ -68,8 +68,8 @@ impl Explorer {
         self.moves_played += 1;
     }
 
-    fn revert(&mut self, board: Board) {
-        self.board = board;
+    fn revert(&mut self, mv: Position) {
+        self.board.revert(mv);
         self.moves_played -= 1;
     }
 
@@ -132,8 +132,6 @@ impl Explorer {
             return (EMPTY_MOVE, b);
         }
 
-        let board_cpy = self.board;
-
         // quick endgame lookahead. checks if game ends in one move.
         for (mv, col) in self.board.get_valid_moves() {
             self.play(mv);
@@ -145,11 +143,11 @@ impl Explorer {
                 // the player cannot have a move that results in a draw and another
                 // that results in him winning. Therefore, the best and only move that
                 // ends the game right away is the current one.
-                self.revert(board_cpy);
+                self.revert(mv);
                 return (col, val);
             }
             // restore original board.
-            self.revert(board_cpy);
+            self.revert(mv);
         }
 
         // the unique key to represent the board in order to insert or search transposition table.
@@ -171,7 +169,6 @@ impl Explorer {
 
         let (mut col, mut val) = (EMPTY_MOVE, -MAX_SCORE);
         let mut first = true;
-        let a_orig = a;
 
         // calculate evaluation.
         for (m, c) in self.board.get_valid_moves() {
@@ -194,11 +191,10 @@ impl Explorer {
             }
 
             // revert back to original position
-            self.revert(board_cpy);
+            self.revert(m);
 
             if new_val > val {
-                val = new_val;
-                col = c;
+                (col, val) = (c, new_val);
                 a = i8::max(new_val, a);
             }
 
@@ -209,9 +205,8 @@ impl Explorer {
         }
 
         // insert into transposition table.
-        if val <= a_orig { // fail-low occurred. This is an ALL node.
-            self.transpositiontable.insert_with_key(board_key, val, FLAG_UPPER, col);
-        }
+        // fail-low occurred.
+        self.transpositiontable.insert_with_key(board_key, val, FLAG_UPPER, col);
 
         (col, val)
     }
