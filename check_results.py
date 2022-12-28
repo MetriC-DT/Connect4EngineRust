@@ -25,6 +25,6 @@ if __name__ == "__main__":
     os.makedirs(name='test_outputs', exist_ok=True)
     basename = os.path.basename(file_to_check)
     outputfile = f'test_outputs/{basename}.log'
-    os.system(f'cargo run --release -- -t {file_to_check} > {outputfile}')
+    os.system(f'RUSTFLAGS="-C target-cpu=native" cargo run --release -- -t {file_to_check} > {outputfile}')
     validate(file_to_check, outputfile)
     os.system(f'tail -n5 test_outputs/{basename}.log')
