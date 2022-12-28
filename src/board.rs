@@ -282,6 +282,10 @@ impl Board {
         self.total_board ^ self.board
     }
 
+    pub fn test_pos(pos: Position, mv: Position) -> Position {
+        pos | mv
+    }
+
     /// puts the valid moves into the given moves_vec
     pub fn get_valid_moves(&self) -> Moves {
         Moves::new(self.possible_moves())

@@ -140,8 +140,8 @@ impl Explorer {
 
         // quick endgame lookahead. checks if can win in 1 move.
         for (mv, col) in self.board.get_valid_moves() {
-            let pos = self.board.get_curr_player_pos() | mv;
-            let pos_eval = Explorer::win_eval(pos, self.moves_played as u8);
+            let test_pos = Board::test_pos(self.board.get_curr_player_pos(), mv);
+            let pos_eval = Explorer::win_eval(test_pos, self.moves_played as u8);
 
             if pos_eval > 0 {
                 return (col, pos_eval);
