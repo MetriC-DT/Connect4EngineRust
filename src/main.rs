@@ -74,6 +74,8 @@ fn eval_from_stdin() -> Result<()> {
             println!("{} {}", mv + 1, eval);
         }
 
+        // flush output immediately.
+        io::stdout().flush()?;
     }
 
     Ok(())
