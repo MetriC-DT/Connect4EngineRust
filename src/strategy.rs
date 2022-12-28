@@ -1,6 +1,7 @@
 use crate::transpositiontable::{TranspositionTable, FLAG_UPPER, FLAG_LOWER};
 use crate::moves::EMPTY_MOVE;
 use crate::board::{SIZE, Board, Position};
+use anyhow::Result;
 
 pub const MAX_SCORE: i8 = 1 + SIZE as i8;
 pub const TIE_SCORE: i8 = 0;
@@ -58,7 +59,7 @@ impl Explorer {
         &self.board
     }
 
-    pub fn add_mv(&mut self, mv: u8) -> Result<(), &str> {
+    pub fn add_mv(&mut self, mv: u8) -> Result<()> {
         self.board.add(mv)
     }
 

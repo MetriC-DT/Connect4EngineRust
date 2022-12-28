@@ -1,5 +1,6 @@
 use crate::moves::Moves;
 use std::fmt;
+use anyhow::{Result, bail};
 
 pub type Position = u64;
 
@@ -159,14 +160,14 @@ impl Board {
 
     /// adds a piece into the specified column. If operation cannot be done,
     /// then it throws an error.
-    pub fn add(&mut self, col: u8) -> Result<(), &str> {
+    pub fn add(&mut self, col: u8) -> Result<()> {
         if self.can_add(col) {
             let possible = self.possible_moves();
             let pos = Board::col_to_pos(possible, col);
             self.play(pos);
             Ok(())
         } else {
-            Err("Unable to add")
+            bail!("Unable to add to column {}", col)
         }
     }
 

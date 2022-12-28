@@ -3,7 +3,7 @@ use std::fs;
 use std::time::Instant;
 use std::io::{self, BufReader, BufRead, Write};
 use clap::Parser;
-
+use anyhow::Result;
 
 /// command line arguments to use.
 #[derive(Parser, Debug)]
@@ -20,33 +20,29 @@ struct Args {
 }
 
 /// main function
-fn main() -> Result<(), String> {
+fn main() -> Result<()> {
     let args = Args::parse();
 
     if let Some(filename) = args.test_file {
-        match test_files(&filename) {
-            Ok(()) => Ok(()),
-            Err(s) => Err(s.to_string()),
-        }
+        test_files(&filename)?;
+        Ok(())
     }
 
     // Plays from the given position, if it exists. default creates a new board.
     else if let Some(position) = args.play {
-        match play_position(&position) {
-            Ok(()) => Ok(()),
-            Err(s) => Err(s.to_string())
-        }
+        play_position(&position)?;
+        Ok(())
     }
 
     else {
         // TODO - read from stdin.
-        Err("TODO - Reading from stdin incomplete".to_string())
+        todo!("TODO - Reading from stdin incomplete.")
     }
 }
 
 
 /// plays the game from the given position.
-fn play_position(position: &str) -> Result<(), &str> {
+fn play_position(position: &str) -> Result<()> {
     let mut board = Board::new_position(position);
 
     let mut explorer = Explorer::new();
@@ -55,10 +51,15 @@ fn play_position(position: &str) -> Result<(), &str> {
         println!("{}", board);
 
         explorer.change_board(&board);
-        println!("Waiting for AI...");
+        println!("Waiting for engine to generate move...");
         let (mv, _eval) = explorer.solve();
-        board.add(mv).unwrap();
-        println!("Engine played {}", mv + 1);
+        let result = board.add(mv);
+        if let Err(s) = result {
+            panic!("Engine corrupted. Aborting.\n{:?}", s);
+        }
+        else {
+            println!("Engine played {}", mv + 1);
+        }
 
         println!("{}", board);
         if board.has_winner() || board.is_filled() {
@@ -66,12 +67,21 @@ fn play_position(position: &str) -> Result<(), &str> {
         }
 
         // get user input.
-        print!("> ");
-        let mut buf = String::new();
-        io::stdout().flush().unwrap();
-        io::stdin().read_line(&mut buf).unwrap();
-        let player_mv = buf.chars().next().unwrap().to_digit(10).unwrap() as u8;
-        board.add(player_mv - 1).unwrap();
+        loop {
+            let mut buf = String::new();
+            print!("Enter column [1-7] > ");
+            io::stdout().flush()?;
+            io::stdin().read_line(&mut buf)?;
+            let mv_str = buf.chars().next();
+
+            if let Some(move_char) = mv_str {
+                if let Some(player_mv) = move_char.to_digit(10) {
+                    if let Ok(()) = board.add(player_mv as u8 - 1) {
+                        break;
+                    }
+                }
+            }
+        }
 
         if board.has_winner() || board.is_filled() {
             break;
