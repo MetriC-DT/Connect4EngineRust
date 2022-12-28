@@ -72,15 +72,36 @@ fn play_position(position: &str) -> Result<()> {
             print!("Enter column [1-7] > ");
             io::stdout().flush()?;
             io::stdin().read_line(&mut buf)?;
-            let mv_str = buf.chars().next();
+            let player_mv = buf.chars().next();
 
-            if let Some(move_char) = mv_str {
-                if let Some(player_mv) = move_char.to_digit(10) {
-                    if let Ok(()) = board.add(player_mv as u8 - 1) {
-                        break;
-                    }
-                }
+            if let None = player_mv {
+                println!("Not a valid move.");
+                continue;
             }
+
+            let player_mv = player_mv.unwrap().to_digit(10);
+            if let None = player_mv {
+                println!("Input does not appear to be a number.");
+                continue;
+            }
+
+            let player_mv: Result<u8, _> = player_mv.unwrap().try_into();
+            if let Err(s) = player_mv {
+                println!("Not a valid move. {}", s);
+                continue;
+            }
+
+            let player_mv = player_mv.unwrap().checked_sub(1);
+            if let None = player_mv {
+                println!("Not a valid column");
+                continue;
+            }
+
+            if let Err(s) = board.add(player_mv.unwrap()) {
+                println!("{}", s);
+                continue;
+            }
+            break;
         }
 
         if board.has_winner() || board.is_filled() {

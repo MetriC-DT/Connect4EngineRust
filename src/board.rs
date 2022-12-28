@@ -167,7 +167,7 @@ impl Board {
             self.play(pos);
             Ok(())
         } else {
-            bail!("Unable to add to column {}", col)
+            bail!("Unable to add to column")
         }
     }
 
