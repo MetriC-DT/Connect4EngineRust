@@ -166,23 +166,21 @@ impl Explorer {
             self.revert(board_cpy);
         }
 
+        // the unique key to represent the board in order to insert or search transposition table.
+        let board_key = self.board.get_unique_position_key();
+
+        // if b is greater than the maximum possible score we can achieve, we can lower the bounds.
+        // This gives us additional chances to see if we can prune.
         b = i8::min(b, MAX_SCORE - self.moves_played as i8);
         if a >= b {
             return b;
         }
 
-        // the index to insert into the principal variation.
-        // let pv_index = board.moves_played() as usize;
-
         // look up evaluation in transposition table
-        let board_key = self.board.get_unique_position_key();
         if let Some(entry) = self.transpositiontable.get_entry_with_key(board_key) {
             let flag = entry.get_flag();
             let val = entry.get_eval();
 
-            // if flag == FLAG_EXACT {
-            //     return (mv, val);
-            // }
             if flag == FLAG_LOWER { a = i8::max(a, val); }
             else if flag == FLAG_UPPER { b = i8::min(b, val); }
 
