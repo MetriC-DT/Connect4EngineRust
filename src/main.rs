@@ -1,4 +1,3 @@
-use connect4engine::moves::EMPTY_MOVE;
 use connect4engine::{strategy::Explorer, board::Board};
 use std::fs;
 use std::time::Instant;
@@ -15,9 +14,9 @@ struct Args {
     #[arg(short, long)]
     test_file: Option<String>,
 
-    /// position to analyze.
+    /// plays the given position (empty string for new position)
     #[arg(short, long)]
-    position: Option<String>,
+    play: Option<String>,
 }
 
 /// main function
@@ -31,34 +30,56 @@ fn main() -> Result<(), String> {
         }
     }
 
-    // explores the position, returning the evaluation and move.
-    else if let Some(position) = args.position {
-        eval_position(&position);
-        Ok(())
+    // Plays from the given position, if it exists. default creates a new board.
+    else if let Some(position) = args.play {
+        match play_position(&position) {
+            Ok(()) => Ok(()),
+            Err(s) => Err(s.to_string())
+        }
     }
 
     else {
-        // TODO - run repl loop.
-        Err("TODO - Repl to be implemented.".to_string())
+        // TODO - read from stdin.
+        Err("TODO - Reading from stdin incomplete".to_string())
     }
 }
 
 
-/// evaluates the position. Prints out string.
-fn eval_position(position: &str) {
-    let board = Board::new_position(position);
-    println!("{}", board);
+/// plays the game from the given position.
+fn play_position(position: &str) -> Result<(), &str> {
+    let mut board = Board::new_position(position);
 
-    let mut explorer = Explorer::with_board(board);
-    let (mv, eval) = explorer.solve();
+    let mut explorer = Explorer::new();
 
-    if mv == EMPTY_MOVE {
-        println!("The game is already over. (Eval: {})", eval);
+    loop {
+        println!("{}", board);
+
+        explorer.change_board(&board);
+        println!("Waiting for AI...");
+        let (mv, _eval) = explorer.solve();
+        board.add(mv).unwrap();
+        println!("Engine played {}", mv + 1);
+
+        println!("{}", board);
+        if board.has_winner() || board.is_filled() {
+            break;
+        }
+
+        // get user input.
+        print!("> ");
+        let mut buf = String::new();
+        io::stdout().flush().unwrap();
+        io::stdin().read_line(&mut buf).unwrap();
+        let player_mv = buf.chars().next().unwrap().to_digit(10).unwrap() as u8;
+        board.add(player_mv - 1).unwrap();
+
+        if board.has_winner() || board.is_filled() {
+            break;
+        }
     }
-    else {
-        let readable_mv = mv + 1; // mv used internally is 0-indexed.
-        println!("Best Move: {} (Eval: {})", readable_mv, eval);
-    }
+
+    println!("Game Over!");
+    Ok(())
 }
 
 /// runs all of the tests from the given test file.
@@ -84,7 +105,6 @@ fn test_files(filename: &str) -> io::Result<()> {
         totaltime += delta;
 
         println!("{}\t{}", &linestr.split(' ').next().unwrap(), eval);
-
         io::stdout().flush()?
     }
 
