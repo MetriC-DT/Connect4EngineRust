@@ -223,19 +223,17 @@ impl Explorer {
                 a = i8::max(score, a);
             }
 
-            if a >= b { break; }
+            if a >= b { // fail-high beta cutoff occurred. This is a CUT node.
+                self.transpositiontable.insert_with_key(board_key, val, FLAG_LOWER);
+                return val;
+            }
         }
 
         // insert into transposition table.
         if val <= a_orig { // fail-low occurred. This is an ALL node.
             self.transpositiontable.insert_with_key(board_key, val, FLAG_UPPER);
-        } else if a >= b { // fail-high beta cutoff occurred. This is a CUT node.
-            // beta cutoff is guaranteed to not be part of the principal variation.
-            self.transpositiontable.insert_with_key(board_key, val, FLAG_LOWER);
         }
-        // else { // This is the PV node. We can't actually get this from PVS.
-        //     self.transpositiontable.insert_with_key(board_key, val, FLAG_EXACT, mv);
-        // }
+
         val
     }
 
