@@ -82,7 +82,7 @@ fn run_game(line: &str) -> (usize, Board) {
     println!("{}", board);
 
     while explorer.game_over_eval().is_none() {
-        let (col, val) = explorer.get_mv_eval();
+        let (col, val) = explorer.solve();
 
         println!("col {}", col);
         assert!(explorer.add_mv(col).is_ok());

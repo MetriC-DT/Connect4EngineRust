@@ -119,8 +119,14 @@ impl Board {
     ///
     /// returns `true` if occupied, otherwise, `false`
     pub fn get(&self, row: u8, col: u8) -> Option<bool> {
+        let board = if self.moves_played() % 2 == 0 {
+            self.board
+        } else {
+            self.board  ^ self.total_board
+        };
+
         let mask = 1 << (row + col * COUNTS_PER_COL);
-        let piece = (self.board & mask) != 0;
+        let piece = (board & mask) != 0;
         let within_total = (self.total_board & mask) != 0;
 
         if within_total {

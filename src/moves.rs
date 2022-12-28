@@ -25,14 +25,14 @@ impl Moves {
 
 impl Display for Moves {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let k = self.clone().collect::<Vec<Position>>();
+        let k = self.clone().collect::<Vec<(Position, u8)>>();
         write!(f, "{:?}", k)
     }
 }
 
 /// iterator over the possible moves that can be played.
 impl Iterator for Moves {
-    type Item=Position;
+    type Item=(Position, u8);
 
     fn next(&mut self) -> Option<Self::Item> {
         let i = self.pointer;
@@ -40,7 +40,7 @@ impl Iterator for Moves {
             self.pointer += 1;
             let play_pos = Board::col_to_pos(self.possible, col);
             if Board::valid_play_pos(play_pos) {
-                return Some(play_pos)
+                return Some((play_pos, col))
             }
         }
 

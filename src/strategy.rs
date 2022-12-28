@@ -72,35 +72,13 @@ impl Explorer {
         self.moves_played -= 1;
     }
 
-    /// if we do not need the move, it is much faster to just call the get_eval function.
-    pub fn get_mv_eval(&mut self) -> (u8, i8) {
-        if let Some(eval) = self.game_over_eval() {
-            return (EMPTY_MOVE, -eval);
-        }
-
-        let board_clone = self.board;
-        let mut move_scores = Vec::new();
-
-        for mv in self.board.get_valid_moves() {
-            self.play(mv);
-            let eval = -self.get_eval();
-            move_scores.push((mv, eval));
-            self.revert(board_clone);
-        }
-
-        move_scores.sort_unstable_by_key(|(_mv, eval)| { *eval });
-        let &(mv, score) = move_scores.last().unwrap();
-        
-        (Board::pos_to_col(mv), score)
-    }
-
     /// returns the optimal move and evaluation for this explorer's current position.
-    pub fn get_eval(&mut self) -> i8 {
+    pub fn solve(&mut self) -> (u8, i8) {
         // TODO - check if move is in openings database.
 
         // Checks if the game is already over.
         if let Some(eval) = self.game_over_eval() {
-            return -eval;
+            return (EMPTY_MOVE, -eval);
         }
 
         // game is guaranteed to not be over. Therefore, we need to search.
@@ -109,7 +87,7 @@ impl Explorer {
         // Somehow, widening the window performs better.
         let starter: i8 = MAX_SCORE - self.board.moves_played() as i8;
         let (mut min, mut max) = (-starter, starter);
-        let mut eval = 0;
+        let (mut col, mut eval) = (EMPTY_MOVE, 0);
 
         // we will use the null window to check if our score is higher or lower. We will basically
         // use a binary search to home in on the correct node within the correct narrower window.
@@ -122,7 +100,7 @@ impl Explorer {
                 med = max/2;
             }
 
-            eval = self.search(med, med + 1); // the null window search
+            (col, eval) = self.search(med, med + 1); // the null window search
             if eval <= med {
                 max = eval;
             }
@@ -131,7 +109,7 @@ impl Explorer {
             }
         }
 
-        eval
+        (col, eval)
     }
 
     /// Searches for the most optimal evaluation and move with the given position.
@@ -141,7 +119,7 @@ impl Explorer {
     /// * transposition table
     fn search(&mut self,
               mut a: i8,
-              mut b: i8) -> i8 {
+              mut b: i8) -> (u8, i8) {
 
         // increment nodes searched.
         self.nodes_explored += 1;
@@ -149,7 +127,7 @@ impl Explorer {
         let board_cpy = self.board;
 
         // quick endgame lookahead. checks if game ends in one move.
-        for mv in self.board.get_valid_moves() {
+        for (mv, col) in self.board.get_valid_moves() {
             self.play(mv);
 
             if let Some(val) = self.game_over_eval() {
@@ -160,7 +138,7 @@ impl Explorer {
                 // that results in him winning. Therefore, the best and only move that
                 // ends the game right away is the current one.
                 self.revert(board_cpy);
-                return val;
+                return (col, val);
             }
             // restore original board.
             self.revert(board_cpy);
@@ -170,7 +148,7 @@ impl Explorer {
         // This gives us additional chances to see if we can prune.
         b = i8::min(b, MAX_SCORE - self.moves_played as i8);
         if a >= b {
-            return b;
+            return (EMPTY_MOVE, b);
         }
 
         // the unique key to represent the board in order to insert or search transposition table.
@@ -180,59 +158,61 @@ impl Explorer {
         if let Some(entry) = self.transpositiontable.get_entry_with_key(board_key) {
             let flag = entry.get_flag();
             let val = entry.get_eval();
+            let mv = entry.get_move();
 
             if flag == FLAG_LOWER { a = i8::max(a, val); }
             else if flag == FLAG_UPPER { b = i8::min(b, val); }
 
             if a >= b { // CUT node.
-                return val;
+                return (mv, val);
             }
         }
 
-        let mut val = -MAX_SCORE;
+        let (mut col, mut val) = (EMPTY_MOVE, -MAX_SCORE);
         let mut first = true;
         let a_orig = a;
 
         // calculate evaluation.
-        for m in self.board.get_valid_moves() {
+        for (m, c) in self.board.get_valid_moves() {
             self.play(m);
 
-            let mut score;
+            let mut new_val;
             if first { // if first child, then assume it is the best move. Scan entire window.
-                let eval = self.search(-b, -a);
-                score = -eval;
+                let (_col, eval) = self.search(-b, -a);
+                new_val = -eval;
                 first = false;
             }
             else { // search with a null window.
-                let eval = self.search(-a - 1, -a);
-                score = -eval;
+                let (_col, eval) = self.search(-a - 1, -a);
+                new_val = -eval;
 
-                if a < score && score < b { // if failed high, do a full re-search.
-                    let eval = self.search(-b, -score);
-                    score = -eval;
+                if a < new_val && new_val < b { // if failed high, do a full re-search.
+                    let (_col, eval) = self.search(-b, -new_val);
+                    new_val = -eval;
                 }
             }
 
             // revert back to original position
             self.revert(board_cpy);
 
-            if score > val {
-                val = score;
-                a = i8::max(score, a);
+            if new_val > val {
+                val = new_val;
+                col = c;
+                a = i8::max(new_val, a);
             }
 
             if a >= b { // fail-high beta cutoff occurred. This is a CUT node.
-                self.transpositiontable.insert_with_key(board_key, val, FLAG_LOWER);
-                return val;
+                self.transpositiontable.insert_with_key(board_key, val, FLAG_LOWER, col);
+                return (col, val);
             }
         }
 
         // insert into transposition table.
         if val <= a_orig { // fail-low occurred. This is an ALL node.
-            self.transpositiontable.insert_with_key(board_key, val, FLAG_UPPER);
+            self.transpositiontable.insert_with_key(board_key, val, FLAG_UPPER, col);
         }
 
-        val
+        (col, val)
     }
 
     /// returns None if not game over. Otherwise, will

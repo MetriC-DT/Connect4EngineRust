@@ -50,7 +50,7 @@ fn eval_position(position: &str) {
     println!("{}", board);
 
     let mut explorer = Explorer::with_board(board);
-    let (mv, eval) = explorer.get_mv_eval();
+    let (mv, eval) = explorer.solve();
 
     if mv == EMPTY_MOVE {
         println!("The game is already over. (Eval: {})", eval);
@@ -79,7 +79,7 @@ fn test_files(filename: &str) -> io::Result<()> {
 
         // time the solve
         let start_time = Instant::now();
-        let eval = explorer.get_eval();
+        let (_mv, eval) = explorer.solve();
         let delta = start_time.elapsed().as_micros();
         totaltime += delta;
 

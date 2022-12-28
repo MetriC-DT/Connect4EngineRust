@@ -49,8 +49,9 @@ fn test_valid_moves() {
     assert_eq!(moves.clone().count(), WIDTH as usize);
 
     // has all columns available
-    for (mv, col) in moves.clone().zip(DEFAULT_ORDER) {
-        assert_eq!(Board::pos_to_col(mv), col)
+    for ((mv, c), col) in moves.clone().zip(DEFAULT_ORDER) {
+        assert_eq!(Board::pos_to_col(mv), col);
+        assert_eq!(col, c);
     }
 
     // fills the 3rd and 6th columns
@@ -64,15 +65,17 @@ fn test_valid_moves() {
 
     // has these columns
     let has_moves = [0, 1, 2, 4, 5];
-    for mv in b.get_valid_moves() {
+    for (mv, c) in b.get_valid_moves() {
         let col = Board::pos_to_col(mv);
+        assert_eq!(col, c);
         assert!(has_moves.contains(&col));
     }
 
     // does not have these columns
     let not_has_moves = [3, 6];
-    for mv in b.get_valid_moves() {
+    for (mv, c) in b.get_valid_moves() {
         let col = Board::pos_to_col(mv);
+        assert_eq!(col, c);
         assert!(!not_has_moves.contains(&col));
     }
 }

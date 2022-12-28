@@ -6,8 +6,9 @@ fn test_moves_ordering() {
     let mvs = emptyboard.get_valid_moves();
 
     let ordering = [3, 2, 4, 1, 5, 0, 6];
-    for (mv, col) in mvs.zip(ordering) {
+    for ((mv, c), col) in mvs.zip(ordering) {
         let mv_col = Board::pos_to_col(mv);
         assert_eq!(mv_col, col);
+        assert_eq!(c, col);
     }
 }
