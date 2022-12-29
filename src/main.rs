@@ -18,6 +18,10 @@ struct Args {
     /// plays the given position (empty string for new position)
     #[arg(short, long)]
     play: Option<String>,
+
+    /// evaluates the given position (mv, evaluation)
+    #[arg(short, long)]
+    eval: Option<String>,
 }
 
 /// main function
@@ -33,10 +37,22 @@ fn main() -> Result<()> {
         play_position(&position)?;
     }
 
+    else if let Some(position) = args.eval {
+        eval_position(&position)?;
+    }
+
     else {
         eval_from_stdin()?;
     }
 
+    Ok(())
+}
+
+fn eval_position(pos: &str) -> Result<()> {
+    let board = Board::new_position(pos)?;
+    let mut explorer = Explorer::with_board(board);
+    let (mv, eval) = explorer.solve();
+    println!("{:?}", (mv + 1, eval));
     Ok(())
 }
 
@@ -97,7 +113,7 @@ fn play_position(position: &str) -> Result<()> {
         let (mv, eval) = explorer.solve();
         let result = board.add(mv);
         if let Err(s) = result {
-            panic!("Engine corrupted. Aborting. {:?}", s);
+            panic!("Engine corrupted. Tried to put in column {}. Aborting. {:?}", mv + 1, s);
         }
         else {
             let mv_played = mv + 1;
@@ -116,6 +132,13 @@ fn play_position(position: &str) -> Result<()> {
             print!("Enter column [1-7] > ");
             io::stdout().flush()?;
             io::stdin().read_line(&mut buf)?;
+
+            buf = buf.trim().to_string();
+            if buf.len() != 1 {
+                println!("Can only take 1 character.");
+                continue;
+            }
+
             let player_mv = buf.chars().next();
 
             if let None = player_mv {

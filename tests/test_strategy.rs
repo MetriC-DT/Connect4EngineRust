@@ -91,14 +91,16 @@ fn run_game(line: &str) -> (usize, Board) {
     let mut explorer = Explorer::with_board(board);
     let mut turncount = 0;
     println!("{}", board);
+    let mut curr_line = line.to_string();
     let mut evals: Vec<i8> = Vec::new();
 
     while explorer.game_over_eval().is_none() {
         let (col, val) = explorer.solve();
 
-        println!("col {}", col);
         evals.push(val);
         assert!(explorer.add_mv(col).is_ok());
+        curr_line.push_str(&format!("{}", col + 1));
+        println!("{}", curr_line);
         println!("Move {} Eval {}\n{}", col, val, explorer.get_board());
         turncount += 1;
     }
