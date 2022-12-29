@@ -80,15 +80,19 @@ fn run_game(line: &str) -> (usize, Board) {
     let mut explorer = Explorer::with_board(board);
     let mut turncount = 0;
     println!("{}", board);
+    let mut evals: Vec<i8> = Vec::new();
 
     while explorer.game_over_eval().is_none() {
         let (col, val) = explorer.solve();
 
         println!("col {}", col);
+        evals.push(val);
         assert!(explorer.add_mv(col).is_ok());
         println!("Move {} Eval {}\n{}", col, val, explorer.get_board());
         turncount += 1;
     }
+
+    assert!(evals.iter().all(|&x| {x == evals[0]}));
 
     (turncount, *explorer.get_board())
 }

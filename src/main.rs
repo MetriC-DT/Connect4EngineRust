@@ -96,7 +96,7 @@ fn play_position(position: &str) -> Result<()> {
         let (mv, _eval) = explorer.solve();
         let result = board.add(mv);
         if let Err(s) = result {
-            panic!("Engine corrupted. Aborting.\n{:?}", s);
+            panic!("Engine corrupted. Aborting. {:?}", s);
         }
         else {
             println!("Engine played {}", mv + 1);
