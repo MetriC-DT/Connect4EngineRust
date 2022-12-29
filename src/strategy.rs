@@ -138,17 +138,14 @@ impl Explorer {
         }
 
         let possible = self.board.possible_moves();
-        // let winning_moves = self.board.player_win_moves(possible);
+        let winning_moves = self.board.player_win_moves(possible);
         // let _essential_moves = self.board.opp_win_moves(possible);
 
         // quick endgame lookahead. checks if can win in 1 move.
-        for (mv, col) in Moves::new(possible) {
-            let test_pos = Board::test_pos(self.board.get_curr_player_pos(), mv);
-            let pos_eval = Explorer::win_eval(test_pos, self.moves_played as u8);
-
-            if pos_eval > 0 {
-                return (col, pos_eval);
-            }
+        if winning_moves != 0 {
+            let (_mv, col) = Moves::new(winning_moves).next().unwrap();
+            let pos_eval = Explorer::win_eval(self.moves_played);
+            return (col, pos_eval);
         }
 
         // the unique key to represent the board in order to insert or search transposition table.
@@ -213,12 +210,8 @@ impl Explorer {
     }
 
     /// returns positive number upon winning. 0 for not win.
-    fn win_eval(pos: Position, moves_played: u8) -> i8 {
-        if Board::is_win(pos) {
-            MAX_SCORE - 1 - moves_played as i8
-        } else {
-            0
-        }
+    fn win_eval(moves_played: u32) -> i8 {
+        MAX_SCORE - 1 - moves_played as i8
     }
 
     /// returns None if not game over. Otherwise, will
