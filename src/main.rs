@@ -84,29 +84,32 @@ fn eval_from_stdin() -> Result<()> {
 
 /// plays the game from the given position.
 fn play_position(position: &str) -> Result<()> {
+    let mut pos_str = String::from(position);
     let mut board = Board::new_position(position)?;
 
     let mut explorer = Explorer::new();
 
     loop {
-        println!("{}", board);
+        println!("{}\n{}", board, pos_str);
 
         explorer.change_board(&board);
         println!("Waiting for engine to generate move...");
-        let (mv, _eval) = explorer.solve();
+        let (mv, eval) = explorer.solve();
         let result = board.add(mv);
         if let Err(s) = result {
             panic!("Engine corrupted. Aborting. {:?}", s);
         }
         else {
-            println!("Engine played {}", mv + 1);
+            let mv_played = mv + 1;
+            println!("Engine played {} (Eval {})", mv_played, eval);
+            pos_str.push_str(&format!("{}", mv_played));
         }
 
-        println!("{}", board);
         if board.has_winner() || board.is_filled() {
             break;
         }
 
+        println!("{}\n{}", board, pos_str);
         // get user input.
         loop {
             let mut buf = String::new();
@@ -142,6 +145,9 @@ fn play_position(position: &str) -> Result<()> {
                 println!("{}", s);
                 continue;
             }
+
+            // user input successful.
+            pos_str.push_str(&format!("{}", player_mv.unwrap() + 1));
             break;
         }
 
@@ -150,6 +156,7 @@ fn play_position(position: &str) -> Result<()> {
         }
     }
 
+    println!("{}\n{}", board, pos_str);
     println!("Game Over!");
     Ok(())
 }

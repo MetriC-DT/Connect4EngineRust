@@ -86,30 +86,9 @@ impl Explorer {
         // game is guaranteed to not be over. Therefore, we need to search.
         // Since our score is calculated with best_score = MAX_SCORE - moves_played,
         // we can use these bounds as our (a, b) window.
-        // 6 is an arbitrary number.
-        let starter: i8 = Explorer::win_eval(self.moves_played + 1) as i8;
-        let (mut min, mut max) = (-starter, starter);
-        // let (mut col, mut eval) = (EMPTY_MOVE, 0);
-
-        // we will use the null window to check if our score is higher or lower. We will basically
-        // use a binary search to home in on the correct node within the correct narrower window.
-        // while min < max {
-        //     let mut med = min + (max - min)/2;
-        //     if med <= 0 && min/2 < med {
-        //         med = min/2;
-        //     }
-        //     else if med >= 0 && max/2 > med {
-        //         med = max/2;
-        //     }
-
-        //     (col, eval) = self.search(med, med + 1); // the null window search
-        //     if eval <= med {
-        //         max = eval;
-        //     }
-        //     else {
-        //         min = eval;
-        //     }
-        // }
+        let mut starter: i8 = Explorer::win_eval(self.moves_played + 1) as i8;
+        starter = i8::max(starter, Explorer::win_eval(7)); // can only win earliest by move 7.
+        let (min, max) = (-starter, starter);
 
         let (col, eval) = self.search(min, max);
         (col, eval)
@@ -185,48 +164,48 @@ impl Explorer {
             }
         }
 
-        let (mut col, mut val) = (EMPTY_MOVE, -MAX_SCORE);
+        let mut col = EMPTY_MOVE;
         let mut first = true;
 
         // calculate evaluation.
         for (m, c) in Moves::new(possible) {
             self.play(m);
 
-            let mut new_val;
+            let mut score;
             if first { // if first child, then assume it is the best move. Scan entire window.
                 let (_col, eval) = self.search(-b, -a);
-                new_val = -eval;
+                score = -eval;
                 first = false;
             }
             else { // search with a null window.
                 let (_col, eval) = self.search(-a - 1, -a);
-                new_val = -eval;
+                score = -eval;
 
-                if a < new_val && new_val < b { // if failed high, do a full re-search.
-                    let (_col, eval) = self.search(-b, -new_val);
-                    new_val = -eval;
+                if a < score && score < b { // if failed high, do a full re-search.
+                    let (_col, eval) = self.search(-b, -score);
+                    score = -eval;
                 }
             }
 
             // revert back to original position
             self.revert(m);
 
-            if new_val > val {
-                (col, val) = (c, new_val);
-                a = i8::max(new_val, a);
+            if score > a {
+                col = c;
+                a = score;
             }
 
             if a >= b { // fail-high beta cutoff occurred. This is a CUT node.
-                self.transpositiontable.insert_with_key(board_key, val, FLAG_LOWER, col);
-                return (col, val);
+                self.transpositiontable.insert_with_key(board_key, a, FLAG_LOWER, col);
+                return (col, a);
             }
         }
 
         // insert into transposition table.
         // fail-low occurred.
-        self.transpositiontable.insert_with_key(board_key, val, FLAG_UPPER, col);
+        self.transpositiontable.insert_with_key(board_key, a, FLAG_UPPER, col);
 
-        (col, val)
+        (col, a)
     }
 
     /// returns positive number upon winning. 0 for not win.

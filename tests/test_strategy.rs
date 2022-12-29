@@ -74,6 +74,16 @@ fn test_one_move_win() {
     assert_eq!(turncount, 1);
 }
 
+#[test]
+fn test_long_p1_win() {
+    let line = "444444";
+    let (_turncount, board) = run_game(line);
+    assert!(board.is_first_player_win());
+    assert!(!board.is_second_player_win());
+    assert!(!board.is_filled());
+    assert_eq!(board.moves_played(), 41);
+}
+
 /// runs the game, returning (num_turns, resulting board)
 fn run_game(line: &str) -> (usize, Board) {
     let board = Board::new_position(line).unwrap();
