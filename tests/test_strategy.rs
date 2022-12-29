@@ -75,6 +75,7 @@ fn test_one_move_win() {
 }
 
 #[test]
+#[ignore = "wait"]
 fn test_long_p1_win() {
     let line = "444444";
     let (_turncount, board) = run_game(line);

@@ -1,4 +1,4 @@
-use connect4engine::{board::{HEIGHT, Board, WIDTH}, moves::{DEFAULT_ORDER, Moves}};
+use connect4engine::{board::{HEIGHT, Board, WIDTH, BOTTOM_ROW_MASK, COLUMN_MASK, COUNTS_PER_COL}, moves::{DEFAULT_ORDER, Moves}};
 
 fn test_winning_line(line: &str) {
     let mut b = Board::new();
@@ -38,6 +38,21 @@ fn test_board_add() {
     assert_eq!(b.get_height(col), HEIGHT);
 }
 
+#[test]
+fn test_board_revert() {
+    let mut b = Board::new_position("16357157437461355316457465722").unwrap();
+    let possible = b.possible_moves();
+    let orig_pos_key = b.get_unique_position_key();
+    for (mv, _col) in Moves::new(possible) {
+        b.play(mv);
+        let new_key = b.get_unique_position_key();
+        assert_ne!(orig_pos_key, new_key);
+        b.revert(mv);
+        let revert_key = b.get_unique_position_key();
+        assert_eq!(orig_pos_key, revert_key);
+    }
+}
+
 
 #[test]
 fn test_not_win_1() {
@@ -67,6 +82,18 @@ fn test_pre_win_1() {
 }
 
 #[test]
+fn test_essential_1() {
+    let line = "444444326552322556";
+    let b = Board::new_position(line).unwrap();
+    let possible = b.possible_moves();
+    let essential = b.opp_win_moves(possible);
+    assert_ne!(essential, 0);
+
+    // should be in column 6.
+    assert_eq!(essential, BOTTOM_ROW_MASK & (COLUMN_MASK << (6 * COUNTS_PER_COL)))
+}
+
+#[test]
 fn test_pre_win_singles() {
     // only 1 line set
     let lines = [
@@ -74,6 +101,7 @@ fn test_pre_win_singles() {
         "776655", // win to left
         "113344", // win in between left
         "112244", // win in between right
+        "4444443265523225563" // win on diagonal
     ];
 
     for line in lines {
