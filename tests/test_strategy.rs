@@ -92,7 +92,7 @@ fn run_game(line: &str) -> (usize, Board) {
         turncount += 1;
     }
 
-    assert!(evals.iter().all(|&x| {x == evals[0]}));
+    assert!(evals.iter().all(|&x| {x.abs() == evals[0].abs()}));
 
     (turncount, *explorer.get_board())
 }

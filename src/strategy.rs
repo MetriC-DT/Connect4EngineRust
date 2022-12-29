@@ -60,6 +60,7 @@ impl Explorer {
     }
 
     pub fn add_mv(&mut self, mv: u8) -> Result<()> {
+        self.moves_played += 1;
         self.board.add(mv)
     }
 
