@@ -133,7 +133,7 @@ impl Explorer {
         }
 
         // if a is less than the minimum possible score we can achieve, we can raise the bounds.
-        let min_eval = -Explorer::win_eval(self.moves_played + 1);
+        let min_eval = -Explorer::win_eval(self.moves_played);
         a = i8::max(a, min_eval);
         if a >= b {
             return (EMPTY_MOVE, a);
