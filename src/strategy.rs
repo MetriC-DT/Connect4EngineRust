@@ -131,14 +131,14 @@ impl Explorer {
         }
 
         // if a is less than the minimum possible score we can achieve, we can raise the bounds.
-        a = i8::max(a, -Explorer::win_eval(self.moves_played));
+        a = i8::max(a, -Explorer::win_eval(self.moves_played + 1));
         if a >= b {
             return (EMPTY_MOVE, a);
         }
 
         // if b is greater than the maximum possible score we can achieve, we can lower the bounds.
         // This gives us additional chances to see if we can prune.
-        b = i8::min(b, Explorer::win_eval(self.moves_played - 1));
+        b = i8::min(b, Explorer::win_eval(self.moves_played));
 
         if a >= b {
             return (EMPTY_MOVE, b);
