@@ -142,9 +142,12 @@ impl Explorer {
 
         // quick endgame lookahead. checks if can win in 1 move.
         if winning_moves != 0 {
-            let (_mv, col) = Moves::new(winning_moves).next().unwrap();
-            let pos_eval = Explorer::win_eval(self.moves_played);
-            return (col, pos_eval);
+            unsafe {
+                // we are guaranteed to produce a move. Therefore, unsafe is fine.
+                let (_mv, col) = Moves::new(winning_moves).next().unwrap_unchecked();
+                let pos_eval = Explorer::win_eval(self.moves_played);
+                return (col, pos_eval);
+            }
         }
 
         let _essential_moves = self.board.opp_win_moves(possible);
