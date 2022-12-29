@@ -131,15 +131,16 @@ impl Explorer {
         }
 
         // if a is less than the minimum possible score we can achieve, we can raise the bounds.
-        a = i8::max(a, -Explorer::win_eval(self.moves_played + 1));
+        // The minimum is when opponent plays on their turn and we lose (2 moves).
+        a = i8::max(a, -Explorer::win_eval(self.moves_played + 2));
         if a >= b {
             return (EMPTY_MOVE, a);
         }
 
         // if b is greater than the maximum possible score we can achieve, we can lower the bounds.
+        // The maximum is when we play on this turn and win (1 move).
         // This gives us additional chances to see if we can prune.
-        b = i8::min(b, Explorer::win_eval(self.moves_played));
-
+        b = i8::min(b, Explorer::win_eval(self.moves_played + 1));
         if a >= b {
             return (EMPTY_MOVE, b);
         }
@@ -150,7 +151,8 @@ impl Explorer {
         // quick endgame lookahead. checks if can win in 1 move.
         if winning_moves != 0 {
             let col = Board::pos_to_col(winning_moves);
-            let pos_eval = Explorer::win_eval(self.moves_played);
+            // if we had won, it would have been on the next turn.
+            let pos_eval = Explorer::win_eval(self.moves_played + 1);
             return (col, pos_eval);
         }
 
@@ -158,7 +160,8 @@ impl Explorer {
         let essential_moves = self.board.opp_win_moves(possible);
         if essential_moves != 0 && !Board::at_most_one_bit_set(essential_moves) {
             let col = Board::pos_to_col(essential_moves);
-            let pos_eval = -Explorer::win_eval(self.moves_played + 1);
+            // if we had lost, it would have been on the turn after the next.
+            let pos_eval = -Explorer::win_eval(self.moves_played + 2);
             return (col, pos_eval);
         }
 
@@ -225,7 +228,7 @@ impl Explorer {
 
     /// returns positive number upon winning. 0 for not win.
     fn win_eval(moves_played: u32) -> i8 {
-        MAX_SCORE - 1 - moves_played as i8
+        MAX_SCORE - moves_played as i8
     }
 
     /// returns None if not game over. Otherwise, will
