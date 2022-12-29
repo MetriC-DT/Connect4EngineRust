@@ -1,12 +1,15 @@
 # Connect4EngineRust
-A strong solver for Connect 4 built with rust.
+A strong solver for Connect 4 built with rust. Inspiration from [here](https://github.com/PascalPons/connect4).
 
 ## Optimizations
+- [x] Principal Variation Search (with alpha-beta pruning)
 - [x] Bitboard
-- [x] Negamax with Alpha Beta Pruning
-- [x] Basic move ordering
+- [x] Move ordering
+    - [x]  center-first to edge
+    - [ ]  losing moves last
+    - [ ]  position heuristic
 - [x] Transposition Table
 - [x] Principal Variation Search
-- [ ] Iterative Deepening
+- [x] Iterative Deepening
 - [ ] Multithreaded search
 - [ ] Openings database
