@@ -130,9 +130,16 @@ impl Explorer {
             return (EMPTY_MOVE, 0);
         }
 
+        // if a is less than the minimum possible score we can achieve, we can raise the bounds.
+        a = i8::max(a, -Explorer::win_eval(self.moves_played));
+        if a >= b {
+            return (EMPTY_MOVE, a);
+        }
+
         // if b is greater than the maximum possible score we can achieve, we can lower the bounds.
         // This gives us additional chances to see if we can prune.
-        b = i8::min(b, MAX_SCORE - self.moves_played as i8);
+        b = i8::min(b, Explorer::win_eval(self.moves_played - 1));
+
         if a >= b {
             return (EMPTY_MOVE, b);
         }
@@ -142,15 +149,18 @@ impl Explorer {
 
         // quick endgame lookahead. checks if can win in 1 move.
         if winning_moves != 0 {
-            unsafe {
-                // we are guaranteed to produce a move. Therefore, unsafe is fine.
-                let (_mv, col) = Moves::new(winning_moves).next().unwrap_unchecked();
-                let pos_eval = Explorer::win_eval(self.moves_played);
-                return (col, pos_eval);
-            }
+            let col = Board::pos_to_col(winning_moves);
+            let pos_eval = Explorer::win_eval(self.moves_played);
+            return (col, pos_eval);
         }
 
-        let _essential_moves = self.board.opp_win_moves(possible);
+        // if there are more than 1 move that enables opponent to win, we are toast.
+        let essential_moves = self.board.opp_win_moves(possible);
+        if essential_moves != 0 && !Board::at_most_one_bit_set(essential_moves) {
+            let col = Board::pos_to_col(essential_moves);
+            let pos_eval = -Explorer::win_eval(self.moves_played + 1);
+            return (col, pos_eval);
+        }
 
         // the unique key to represent the board in order to insert or search transposition table.
         let board_key = self.board.get_unique_position_key();
