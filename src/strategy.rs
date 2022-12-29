@@ -87,30 +87,31 @@ impl Explorer {
         // Since our score is calculated with best_score = MAX_SCORE - moves_played,
         // we can use these bounds as our (a, b) window.
         // 6 is an arbitrary number.
-        let starter: i8 = Explorer::win_eval(self.moves_played) + 6 as i8;
+        let starter: i8 = Explorer::win_eval(self.moves_played + 1) as i8;
         let (mut min, mut max) = (-starter, starter);
-        let (mut col, mut eval) = (EMPTY_MOVE, 0);
+        // let (mut col, mut eval) = (EMPTY_MOVE, 0);
 
         // we will use the null window to check if our score is higher or lower. We will basically
         // use a binary search to home in on the correct node within the correct narrower window.
-        while min < max {
-            let mut med = min + (max - min)/2;
-            if med <= 0 && min/2 < med {
-                med = min/2;
-            }
-            else if med >= 0 && max/2 > med {
-                med = max/2;
-            }
+        // while min < max {
+        //     let mut med = min + (max - min)/2;
+        //     if med <= 0 && min/2 < med {
+        //         med = min/2;
+        //     }
+        //     else if med >= 0 && max/2 > med {
+        //         med = max/2;
+        //     }
 
-            (col, eval) = self.search(med, med + 1); // the null window search
-            if eval <= med {
-                max = eval;
-            }
-            else {
-                min = eval;
-            }
-        }
+        //     (col, eval) = self.search(med, med + 1); // the null window search
+        //     if eval <= med {
+        //         max = eval;
+        //     }
+        //     else {
+        //         min = eval;
+        //     }
+        // }
 
+        let (col, eval) = self.search(min, max);
         (col, eval)
     }
 

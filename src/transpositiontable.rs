@@ -7,8 +7,9 @@ use crate::{board::Board, moves::EMPTY_MOVE};
 /// Since `2^STORED_KEY_BITS` and `MAX_TABLE_SIZE` are chosen to be pairwise co-prime, if `key` is
 /// a natural number < (2^STORED_KEY_BITS * MAX_TABLE_SIZE), then it will have a unique `c` where:
 /// key === c mod (2^STORED_KEY_BITS * MAX_TABLE_SIZE)
-/// Thus, the key can be uniquely determined by the pair (a, b). Since b is used as the location of
-/// the entry in the table, all we need to do is store a (which requires `STORED_KEY_BITS` bits).
+/// Thus, the key can be uniquely determined by the pair (a, b) if the key is less than
+/// (2^STORED_KEY_BITS * MAX_TABLE_SIZE). Since b is used as the location of the entry in the
+/// table, all we need to do is store a (which requires `STORED_KEY_BITS` bits).
 
 /// Number of elements in the table. Best to choose a prime, and must be odd.
 /// With the Chinese remainder theorem, the size must be greater than 2^17, since the
@@ -47,7 +48,7 @@ pub const FLAG_LOWER: Flag = 2;
 
 impl Entry {
     pub fn new(board_key: u64, eval: i8, flag: Flag, mv: u8) -> Self {
-        let stored_key = (board_key & STORED_KEY_BIT_MASK) as u32;
+        let stored_key = u32::try_from(board_key & STORED_KEY_BIT_MASK).unwrap();
         let metadata = flag | (mv << MOVE_LOC);
         Self { stored_key, eval, metadata }
     }
@@ -102,7 +103,8 @@ impl TranspositionTable {
 
     /// obtains the location of the key into the transposition table.
     pub fn location(key: u64) -> usize {
-        key as usize % MAX_TABLE_SIZE
+        let loc = key % u64::try_from(MAX_TABLE_SIZE).unwrap();
+        return loc.try_into().unwrap()
     }
 
     /// Gets the entry using the given board to calculate the key.
