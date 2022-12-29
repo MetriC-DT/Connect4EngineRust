@@ -85,7 +85,8 @@ impl Explorer {
         // game is guaranteed to not be over. Therefore, we need to search.
         // Since our score is calculated with best_score = MAX_SCORE - moves_played,
         // we can use these bounds as our (a, b) window.
-        let starter: i8 = MAX_SCORE - self.board.moves_played() as i8;
+        // 6 is an arbitrary number.
+        let starter: i8 = Explorer::win_eval(self.moves_played) + 6 as i8;
         let (mut min, mut max) = (-starter, starter);
         let (mut col, mut eval) = (EMPTY_MOVE, 0);
 
@@ -131,16 +132,16 @@ impl Explorer {
         }
 
         // if a is less than the minimum possible score we can achieve, we can raise the bounds.
-        // The minimum is when opponent plays on their turn and we lose (2 moves).
-        a = i8::max(a, -Explorer::win_eval(self.moves_played + 2));
+        let min_eval = -Explorer::win_eval(self.moves_played + 1);
+        a = i8::max(a, min_eval);
         if a >= b {
             return (EMPTY_MOVE, a);
         }
 
         // if b is greater than the maximum possible score we can achieve, we can lower the bounds.
-        // The maximum is when we play on this turn and win (1 move).
         // This gives us additional chances to see if we can prune.
-        b = i8::min(b, Explorer::win_eval(self.moves_played + 1));
+        let max_eval = Explorer::win_eval(self.moves_played);
+        b = i8::min(b, max_eval);
         if a >= b {
             return (EMPTY_MOVE, b);
         }
