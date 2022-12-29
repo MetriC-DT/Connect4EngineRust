@@ -85,7 +85,6 @@ impl Explorer {
         // game is guaranteed to not be over. Therefore, we need to search.
         // Since our score is calculated with best_score = MAX_SCORE - moves_played,
         // we can use these bounds as our (a, b) window.
-        // Somehow, widening the window performs better.
         let starter: i8 = MAX_SCORE - self.board.moves_played() as i8;
         let (mut min, mut max) = (-starter, starter);
         let (mut col, mut eval) = (EMPTY_MOVE, 0);

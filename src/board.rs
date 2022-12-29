@@ -52,7 +52,7 @@ pub const DIRECTION: [u8; 4] = [1, COUNTS_PER_COL - 1, COUNTS_PER_COL, COUNTS_PE
 /// The `total_board` variable describes the OR of the two player's
 /// bitboards.
 ///
-/// The `board` variable describes the bitboard for the current player.
+/// The `board` variable describes the bitboard for the opposing player, each turn.
 #[derive(Debug, Clone, Copy)]
 pub struct Board {
     board: Position,
@@ -217,9 +217,15 @@ impl Board {
     /// 0 1 0 1 0 0 0
     /// 1 0 0 0 0 0 0
     /// 0 0 0 0 1 1 1
-    pub fn possible_moves(&self) -> Position {
+    fn possible_moves(&self) -> Position {
         (self.total_board + BOTTOM_ROW_MASK) & PLAYABLE_REGION
     }
+
+    /// returns possible moves that are bad. These moves are to be sorted to the end of move
+    /// ordering, when creating new `Moves`. A bad move allows the opponent player to win
+    /// immediately on their next move.
+    // fn bad_moves(&self) -> Position {
+    // }
 
     /// performs the add operation assuming that the selected position can be played.
     /// Undefined behavior if position is not valid.
@@ -254,28 +260,6 @@ impl Board {
         }
 
         false
-    }
-
-    /// obtains the string representation of a bitboard.
-    pub fn get_bitboard_str(bitboard: Position) -> String {
-        let mut s = String::with_capacity((SIZE + HEIGHT) as usize);
-        for i in 0..SIZE {
-            let c = i % WIDTH;
-            let r = HEIGHT - i / WIDTH - 1;
-            let mask = 1 << (r + c * COUNTS_PER_COL);
-
-            if bitboard & mask != 0 {
-                s.push('1');
-            }
-            else {
-                s.push('0');
-            }
-
-            if (i + 1) % WIDTH == 0 {
-                s.push('\n');
-            };
-        }
-        s
     }
 
     /// returns the position from the current player's perspective.
