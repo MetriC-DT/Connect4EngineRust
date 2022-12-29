@@ -1,4 +1,3 @@
-use crate::moves::Moves;
 use std::fmt;
 use anyhow::{Result, bail};
 
@@ -217,15 +216,51 @@ impl Board {
     /// 0 1 0 1 0 0 0
     /// 1 0 0 0 0 0 0
     /// 0 0 0 0 1 1 1
-    fn possible_moves(&self) -> Position {
+    pub fn possible_moves(&self) -> Position {
         (self.total_board + BOTTOM_ROW_MASK) & PLAYABLE_REGION
     }
 
-    /// returns possible moves that are bad. These moves are to be sorted to the end of move
-    /// ordering, when creating new `Moves`. A bad move allows the opponent player to win
-    /// immediately on their next move.
-    // fn bad_moves(&self) -> Position {
-    // }
+    /// returns the moves that opponent needs to win. These moves are to be sorted to the beginning
+    /// of move ordering, when creating new `Moves`. These moves are necessary to play in order to
+    /// prevent the opponent from winning on their turn.
+    pub fn opp_win_moves(&self, possible: Position) -> Position {
+        // the opponent's board.
+        let opp = self.board;
+        Board::winning_moves(opp, possible)
+    }
+
+    /// returns the moves that the current player can use to win.
+    pub fn player_win_moves(&self, possible: Position) -> Position {
+        let player = self.board ^ self.total_board;
+        Board::winning_moves(player, possible)
+    }
+
+    /// returns the moves that position p can use to win immediately on their turn.
+    fn winning_moves(p: Position, possible: Position) -> Position {
+        // checks for connect 3s.
+        // vertical (only need to check up).
+        let mut win_moves = (p << 1) & (p << 2) & (p << 3);
+
+        // All of the other directions aside from vertical.
+        for &dir in &DIRECTION[1..] {
+            let mut pp = (p << dir) & (p << (2 * dir));
+
+            win_moves |= pp & (p << (3 * dir)); // 3 in a row (e.g. xxx_)
+            win_moves |= pp & (p >> dir); // split (e.g. x_xx)
+
+            // for use in the other direction.
+            pp >>= 3 * dir;
+            win_moves |= pp & (p >> (3 * dir)); // 3 in a row
+            win_moves |= pp & (p << dir); // split
+        }
+
+        win_moves & possible
+    }
+
+    pub fn at_most_one_bit_set(p: Position) -> bool {
+        (p & p.wrapping_sub(1)) == 0
+    }
+
 
     /// performs the add operation assuming that the selected position can be played.
     /// Undefined behavior if position is not valid.
@@ -271,11 +306,6 @@ impl Board {
     /// Assumes that mv can be played, and pos is valid. Undefined behavior if it is not.
     pub fn test_pos(pos: Position, mv: Position) -> Position {
         pos | mv
-    }
-
-    /// puts the valid moves into the given moves_vec
-    pub fn get_valid_moves(&self) -> Moves {
-        Moves::new(self.possible_moves())
     }
 
     /// checks whether the entire board is entirely filled.

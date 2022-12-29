@@ -1,18 +1,4 @@
-use connect4engine::{board::{HEIGHT, Board, WIDTH}, moves::DEFAULT_ORDER};
-
-#[test]
-fn test_board_add() {
-    let mut b = Board::new();
-    let col: u8 = 3;
-    for i in 0..HEIGHT {
-        assert_eq!(b.get_height(col), i);
-        assert!(b.add(col).is_ok());
-    }
-
-    // cannot add when height max is reached.
-    assert!(b.add(col).is_err());
-    assert_eq!(b.get_height(col), HEIGHT);
-}
+use connect4engine::{board::{HEIGHT, Board, WIDTH}, moves::{DEFAULT_ORDER, Moves}};
 
 fn test_winning_line(line: &str) {
     let mut b = Board::new();
@@ -30,6 +16,81 @@ fn test_winning_line(line: &str) {
     assert!(b.has_winner());
 }
 
+fn test_pre_win(line: &str, one_bit_set: bool) {
+    let b = Board::new_position(line).unwrap();
+    let possible = b.possible_moves();
+    let w_mvs = b.player_win_moves(possible);
+    assert_ne!(w_mvs, 0);
+    assert_eq!(Board::at_most_one_bit_set(w_mvs), one_bit_set);
+}
+
+#[test]
+fn test_board_add() {
+    let mut b = Board::new();
+    let col: u8 = 3;
+    for i in 0..HEIGHT {
+        assert_eq!(b.get_height(col), i);
+        assert!(b.add(col).is_ok());
+    }
+
+    // cannot add when height max is reached.
+    assert!(b.add(col).is_err());
+    assert_eq!(b.get_height(col), HEIGHT);
+}
+
+
+#[test]
+fn test_not_win_1() {
+    let line = "16357157437461355316457465722";
+    let b = Board::new_position(line).unwrap();
+    let possible = b.possible_moves();
+    assert_eq!(b.player_win_moves(possible), 0);
+}
+
+#[test]
+fn test_not_win_2() {
+    let line = "4444475222243665656626337551512717177131";
+    let b = Board::new_position(line).unwrap();
+    let possible = b.possible_moves();
+    println!("{}", b);
+    assert_ne!(b.player_win_moves(possible), 0);
+}
+
+#[test]
+fn test_pre_win_1() {
+    let line = "323232";
+    let b = Board::new_position(line).unwrap();
+    let possible = b.possible_moves();
+    let w_mvs = b.player_win_moves(possible);
+    assert_ne!(w_mvs, 0);
+    assert!(Board::at_most_one_bit_set(w_mvs));
+}
+
+#[test]
+fn test_pre_win_singles() {
+    // only 1 line set
+    let lines = [
+        "112233", // win to right
+        "776655", // win to left
+        "113344", // win in between left
+        "112244", // win in between right
+    ];
+
+    for line in lines {
+        test_pre_win(line, true);
+    }
+}
+
+#[test]
+fn test_pre_win_multiples() {
+    let lines = [
+        "223344" // win on left and right
+    ];
+    for line in lines {
+        test_pre_win(line, false);
+    }
+}
+
 #[test]
 fn test_win_vertical() {
     let line = "3232323";
@@ -45,7 +106,7 @@ fn test_win_horizontal() {
 #[test]
 fn test_valid_moves() {
     let mut b = Board::new();
-    let moves = b.get_valid_moves();
+    let moves = Moves::new(b.possible_moves());
     assert_eq!(moves.clone().count(), WIDTH as usize);
 
     // has all columns available
@@ -60,12 +121,12 @@ fn test_valid_moves() {
         b.add(6).unwrap();
     }
 
-    let moves = b.get_valid_moves();
+    let moves = Moves::new(b.possible_moves());
     assert_eq!(moves.count(), (WIDTH - 2) as usize);
 
     // has these columns
     let has_moves = [0, 1, 2, 4, 5];
-    for (mv, c) in b.get_valid_moves() {
+    for (mv, c) in Moves::new(b.possible_moves()) {
         let col = Board::pos_to_col(mv);
         assert_eq!(col, c);
         assert!(has_moves.contains(&col));
@@ -73,7 +134,7 @@ fn test_valid_moves() {
 
     // does not have these columns
     let not_has_moves = [3, 6];
-    for (mv, c) in b.get_valid_moves() {
+    for (mv, c) in Moves::new(b.possible_moves()) {
         let col = Board::pos_to_col(mv);
         assert_eq!(col, c);
         assert!(!not_has_moves.contains(&col));

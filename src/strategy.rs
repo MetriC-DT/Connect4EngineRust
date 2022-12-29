@@ -1,5 +1,5 @@
 use crate::transpositiontable::{TranspositionTable, FLAG_UPPER, FLAG_LOWER};
-use crate::moves::EMPTY_MOVE;
+use crate::moves::{EMPTY_MOVE, Moves};
 use crate::board::{SIZE, Board, Position};
 use anyhow::Result;
 
@@ -137,8 +137,12 @@ impl Explorer {
             return (EMPTY_MOVE, b);
         }
 
+        let possible = self.board.possible_moves();
+        // let winning_moves = self.board.player_win_moves(possible);
+        // let _essential_moves = self.board.opp_win_moves(possible);
+
         // quick endgame lookahead. checks if can win in 1 move.
-        for (mv, col) in self.board.get_valid_moves() {
+        for (mv, col) in Moves::new(possible) {
             let test_pos = Board::test_pos(self.board.get_curr_player_pos(), mv);
             let pos_eval = Explorer::win_eval(test_pos, self.moves_played as u8);
 
@@ -168,7 +172,7 @@ impl Explorer {
         let mut first = true;
 
         // calculate evaluation.
-        for (m, c) in self.board.get_valid_moves() {
+        for (m, c) in Moves::new(possible) {
             self.play(m);
 
             let mut new_val;
