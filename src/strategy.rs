@@ -125,8 +125,8 @@ impl Explorer {
         self.nodes_explored += 1;
 
         if self.board.is_filled() { // the position is drawn.
-            // we do not need to check if move is win, because this is already checked before the
-            // recursive call.
+            // we do not need to check if move is win, because winning is already checked before
+            // the recursive call (via endgame lookahead).
             return (EMPTY_MOVE, 0);
         }
 
@@ -139,7 +139,6 @@ impl Explorer {
 
         let possible = self.board.possible_moves();
         let winning_moves = self.board.player_win_moves(possible);
-        // let _essential_moves = self.board.opp_win_moves(possible);
 
         // quick endgame lookahead. checks if can win in 1 move.
         if winning_moves != 0 {
@@ -147,6 +146,8 @@ impl Explorer {
             let pos_eval = Explorer::win_eval(self.moves_played);
             return (col, pos_eval);
         }
+
+        let _essential_moves = self.board.opp_win_moves(possible);
 
         // the unique key to represent the board in order to insert or search transposition table.
         let board_key = self.board.get_unique_position_key();
