@@ -107,21 +107,17 @@ impl TranspositionTable {
     }
 
     /// Gets the entry using the given board to calculate the key.
-    pub fn get_entry(&self, board: &Board) -> Option<&Entry> {
+    /// bool determines whether the key matches (whether entry is valid).
+    pub fn get_entry(&self, board: &Board) -> (&Entry, bool) {
         let key = board.get_unique_position_key();
         self.get_entry_with_key(key)
     }
 
     /// obtains the selected entry, given a key.
-    pub fn get_entry_with_key(&self, key: u64) -> Option<&Entry> {
+    pub fn get_entry_with_key(&self, key: u64) -> (&Entry, bool) {
         let loc = TranspositionTable::location(key);
         let entry = &self.table[loc];
-
-        if (key & STORED_KEY_BIT_MASK) as u32 == entry.get_key()  {
-            return Some(entry);
-        }
-        else {
-            None
-        }
+        let valid = (key & STORED_KEY_BIT_MASK) as u32 == entry.get_key();
+        return (entry, valid)
     }
 }

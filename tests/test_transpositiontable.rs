@@ -9,10 +9,12 @@ fn test_insert_get() {
     let eval_hi = 5;
 
     let mut table = TranspositionTable::new();
-    assert!(table.get_entry(&board).is_none());
+    let (_entry, valid) = table.get_entry(&board);
+    assert!(!valid);
 
     table.insert(&board, eval_hi, FLAG_UPPER);
-    let entry = table.get_entry(&board).unwrap();
+    let (entry, valid) = table.get_entry(&board);
+    assert!(valid);
     assert_eq!(entry.get_eval(), eval_hi);
     assert_eq!(entry.get_flag(), FLAG_UPPER);
 }
@@ -23,10 +25,12 @@ fn test_insert_get_negative() {
     let eval_hi = -1;
 
     let mut table = TranspositionTable::new();
-    assert!(table.get_entry(&board).is_none());
+    let (_entry, valid) = table.get_entry(&board);
+    assert!(!valid);
 
     table.insert(&board, eval_hi, FLAG_UPPER);
-    let entry = table.get_entry(&board).unwrap();
+    let (entry, valid) = table.get_entry(&board);
+    assert!(valid);
     assert_eq!(entry.get_eval(), eval_hi);
     assert_eq!(entry.get_flag(), FLAG_UPPER);
 }
@@ -37,15 +41,18 @@ fn test_evict() {
     let eval_hi = 10;
 
     let mut table = TranspositionTable::new();
-    assert!(table.get_entry(&board).is_none());
+    let (_entry, valid) = table.get_entry(&board);
+    assert!(!valid);
 
     table.insert(&board, eval_hi, FLAG_LOWER);
-    let entry = table.get_entry(&board).unwrap();
+    let (entry, valid) = table.get_entry(&board);
+    assert!(valid);
     assert_eq!(entry.get_eval(), eval_hi);
     assert_eq!(entry.get_flag(), FLAG_LOWER);
 
     table.insert(&board, 0, FLAG_UPPER);
-    let entry = table.get_entry(&board).unwrap();
+    let (entry, valid) = table.get_entry(&board);
+    assert!(valid);
     assert_eq!(entry.get_eval(), 0);
     assert_eq!(entry.get_flag(), FLAG_UPPER);
 }
