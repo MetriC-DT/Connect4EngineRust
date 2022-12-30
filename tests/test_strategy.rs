@@ -95,6 +95,7 @@ fn run_game(line: &str) -> (usize, Board) {
         turncount += 1;
     }
 
+    // make sure all the evaluations are the same (just alternating signs).
     assert!(evals.iter().all(|&x| {x.abs() == evals[0].abs()}));
 
     (turncount, *explorer.get_board())
