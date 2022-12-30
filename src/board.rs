@@ -313,8 +313,15 @@ impl Board {
         self.total_board == PLAYABLE_REGION
     }
 
+    /// checks whether the board has a winner. We don't need to check whether the other player has
+    /// won, since only the currently playing player can win on their own turn.
     pub fn has_winner(&self) -> bool {
         Board::is_win(self.board)
+    }
+
+    /// returns true if game is over.
+    pub fn is_game_over(&self) -> bool {
+        self.is_first_player_win() || self.is_second_player_win() || self.is_filled()
     }
 
     /// obtains the number of moves made.

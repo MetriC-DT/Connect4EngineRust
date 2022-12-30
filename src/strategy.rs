@@ -73,10 +73,16 @@ impl Explorer {
         // TODO - check if move is in openings database.
 
         // Checks if the game is already over.
-        if let Some(eval) = self.game_over_eval() {
-            return (EMPTY_MOVE, -eval);
+        if self.get_board().has_winner() {
+            // if board has winner already, then assume the current player is loser.
+            // Therefore, the score would be negative.
+            return (EMPTY_MOVE, -Explorer::win_eval(self.moves_played));
+        }
+        else if self.get_board().is_filled() {
+            return (EMPTY_MOVE, TIE_SCORE);
         }
 
+        // needs to evaluate every of the positions that could result from the current.
         let possible = self.get_board().possible_moves();
         let mut pairs = Vec::new();
 
@@ -153,7 +159,7 @@ impl Explorer {
         if self.board.is_filled() { // the position is drawn.
             // we do not need to check if move is win, because winning is already checked before
             // the recursive call (via endgame lookahead).
-            return 0;
+            return TIE_SCORE;
         }
 
         // if we had lost, it would have been on the turn after the next.
@@ -250,23 +256,6 @@ impl Explorer {
     /// returns positive number upon winning. 0 for not win.
     fn win_eval(moves_played: u32) -> i8 {
         MAX_SCORE - moves_played as i8
-    }
-
-    /// returns None if not game over. Otherwise, will
-    /// return the evaluation of the board
-    pub fn game_over_eval(&self) -> Option<i8> {
-        if self.board.has_winner() {
-            // Added size here so we can select the move that finishes the game 
-            // the quickest.
-            let score: i8 = MAX_SCORE - self.moves_played as i8;
-            Some(score)
-        }
-
-        // if draw game
-        else if self.board.is_filled() { Some(TIE_SCORE) }
-
-        // otherwise, the game is still ongoing.
-        else { None }
     }
 
     /// returns the number of nodes explored.

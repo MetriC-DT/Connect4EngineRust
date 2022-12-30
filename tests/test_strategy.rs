@@ -83,7 +83,7 @@ fn run_game(line: &str) -> (usize, Board) {
     let mut curr_line = line.to_string();
     let mut evals: Vec<i8> = Vec::new();
 
-    while explorer.game_over_eval().is_none() {
+    while !explorer.get_board().is_game_over() {
         let (col, val) = explorer.solve();
 
         evals.push(val);
