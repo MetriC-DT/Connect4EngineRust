@@ -160,17 +160,16 @@ impl Explorer {
         // if a is less than the minimum possible score we can achieve, we can raise the bounds.
         let min_eval = -Explorer::win_eval(self.moves_played + 2);
         a = i8::max(a, min_eval);
-        if a >= b {
-            return a;
-        }
 
         // if we had won, it would have been on the next turn.
         // if b is greater than the maximum possible score we can achieve, we can lower the bounds.
         // This gives us additional chances to see if we can prune.
         let max_eval = Explorer::win_eval(self.moves_played + 1);
         b = i8::min(b, max_eval);
+
+        // prune, as this is a cut node.
         if a >= b {
-            return b;
+            return a;
         }
 
         let possible = self.board.possible_moves();
