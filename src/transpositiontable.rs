@@ -77,14 +77,15 @@ impl Default for Entry {
 
 #[derive(Debug)]
 pub struct TranspositionTable {
-    table: Vec<Entry>
+    table: Vec<(Entry, Entry)>
 }
 
 impl TranspositionTable {
 
     /// initializes the new Transposition Table
     pub fn new() -> Self {
-        Self { table: vec![Entry::default(); MAX_TABLE_SIZE] }
+        let entries = ( Entry::default(), Entry::default() );
+        Self { table: vec![entries; MAX_TABLE_SIZE] }
     }
 
     /// inserts the board game state and evaluation into the transposition table.
