@@ -1,7 +1,6 @@
 use crate::transpositiontable::{TranspositionTable, FLAG_UPPER, FLAG_LOWER};
 use crate::moves::{EMPTY_MOVE, Moves};
 use crate::board::{SIZE, Board, Position};
-use anyhow::Result;
 
 pub const MAX_SCORE: i8 = 1 + SIZE as i8;
 pub const TIE_SCORE: i8 = 0;
@@ -59,11 +58,6 @@ impl Explorer {
         &self.board
     }
 
-    pub fn add_mv(&mut self, mv: u8) -> Result<()> {
-        self.moves_played += 1;
-        self.board.add(mv)
-    }
-
     fn play(&mut self, mv: Position) {
         self.board.play(mv);
         self.moves_played += 1;
@@ -83,15 +77,65 @@ impl Explorer {
             return (EMPTY_MOVE, -eval);
         }
 
+        let possible = self.get_board().possible_moves();
+        let mut pairs = Vec::new();
+
+        for (mv, _c) in Moves::new(possible) {
+            self.play(mv);
+            let col = Board::pos_to_col(mv);
+            if self.board.has_winner() {
+                let eval = Explorer::win_eval(self.moves_played);
+                self.revert(mv);
+                return (col, eval);
+            } else {
+                let eval = -self.evaluate();
+                pairs.push((mv, eval));
+            }
+            self.revert(mv);
+        }
+
+        let (mv, eval) = pairs.into_iter().max_by_key(|&(_m, v)| { v }).unwrap();
+        (Board::pos_to_col(mv), eval)
+    }
+
+    /// evaluates the position, but doesn't return a corresponding move.
+    pub fn evaluate(&mut self) -> i8 {
         // game is guaranteed to not be over. Therefore, we need to search.
         // Since our score is calculated with best_score = MAX_SCORE - moves_played,
         // we can use these bounds as our (a, b) window.
-        let mut starter: i8 = Explorer::win_eval(self.moves_played + 1) as i8;
-        starter = i8::max(starter, Explorer::win_eval(7)); // can only win earliest by move 7.
-        let (min, max) = (-starter, starter);
 
-        let (col, eval) = self.search(min, max);
-        (col, eval)
+        // the maximum score we can get is when we win directly on our next move.
+        let start_max: i8 = Explorer::win_eval(self.moves_played + 1);
+        let start_max: i8 = i8::min(start_max, Explorer::win_eval(7)); // fastest win on 7 moves.
+
+        // the minimum score we can get is when we lose on the opponent's move (2 more moves).
+        let start_min: i8 = -Explorer::win_eval(self.moves_played + 2);
+        let start_min: i8 = i8::max(start_min, -Explorer::win_eval(8)); // fastest loss on 8 moves.
+
+        let (mut min, mut max) = (start_min, start_max);
+        let mut eval = 0;
+
+        // we will use the null window to check if our score is higher or lower. We will basically
+        // use a binary search to home in on the correct node within the correct narrower window.
+        while min < max {
+            let mut med = min + (max - min)/2;
+            if med <= 0 && min/2 < med {
+                med = min/2;
+            }
+            else if med >= 0 && max/2 > med {
+                med = max/2;
+            }
+
+            eval = self.search(med, med + 1); // the null window search
+            if eval <= med {
+                max = eval;
+            }
+            else {
+                min = eval;
+            }
+        }
+
+        eval
     }
 
     /// Searches for the most optimal evaluation and move with the given position.
@@ -101,7 +145,7 @@ impl Explorer {
     /// * transposition table
     fn search(&mut self,
               mut a: i8,
-              mut b: i8) -> (u8, i8) {
+              mut b: i8) -> i8 {
 
         // increment nodes searched.
         self.nodes_explored += 1;
@@ -109,22 +153,24 @@ impl Explorer {
         if self.board.is_filled() { // the position is drawn.
             // we do not need to check if move is win, because winning is already checked before
             // the recursive call (via endgame lookahead).
-            return (EMPTY_MOVE, 0);
+            return 0;
         }
 
+        // if we had lost, it would have been on the turn after the next.
         // if a is less than the minimum possible score we can achieve, we can raise the bounds.
-        let min_eval = -Explorer::win_eval(self.moves_played);
+        let min_eval = -Explorer::win_eval(self.moves_played + 2);
         a = i8::max(a, min_eval);
         if a >= b {
-            return (EMPTY_MOVE, a);
+            return a;
         }
 
+        // if we had won, it would have been on the next turn.
         // if b is greater than the maximum possible score we can achieve, we can lower the bounds.
         // This gives us additional chances to see if we can prune.
-        let max_eval = Explorer::win_eval(self.moves_played);
+        let max_eval = Explorer::win_eval(self.moves_played + 1);
         b = i8::min(b, max_eval);
         if a >= b {
-            return (EMPTY_MOVE, b);
+            return b;
         }
 
         let possible = self.board.possible_moves();
@@ -132,19 +178,13 @@ impl Explorer {
 
         // quick endgame lookahead. checks if can win in 1 move.
         if winning_moves != 0 {
-            let col = Board::pos_to_col(winning_moves);
-            // if we had won, it would have been on the next turn.
-            let pos_eval = Explorer::win_eval(self.moves_played + 1);
-            return (col, pos_eval);
+            return max_eval;
         }
 
         // if there are more than 1 move that enables opponent to win, we are toast.
         let essential_moves = self.board.opp_win_moves(possible);
         if essential_moves != 0 && !Board::at_most_one_bit_set(essential_moves) {
-            let col = Board::pos_to_col(essential_moves);
-            // if we had lost, it would have been on the turn after the next.
-            let pos_eval = -Explorer::win_eval(self.moves_played + 2);
-            return (col, pos_eval);
+            return min_eval;
         }
 
         // the unique key to represent the board in order to insert or search transposition table.
@@ -154,58 +194,52 @@ impl Explorer {
         if let Some(entry) = self.transpositiontable.get_entry_with_key(board_key) {
             let flag = entry.get_flag();
             let val = entry.get_eval();
-            let mv = entry.get_move();
 
             if flag == FLAG_LOWER { a = i8::max(a, val); }
             else if flag == FLAG_UPPER { b = i8::min(b, val); }
 
             if a >= b { // CUT node.
-                return (mv, val);
+                return val;
             }
         }
 
-        let mut col = EMPTY_MOVE;
         let mut first = true;
 
         // calculate evaluation.
-        for (m, c) in Moves::new(possible) {
+        for (m, _) in Moves::new(possible) {
             self.play(m);
 
-            let mut score;
+            let mut new_val;
             if first { // if first child, then assume it is the best move. Scan entire window.
-                let (_col, eval) = self.search(-b, -a);
-                score = -eval;
+                let eval = self.search(-b, -a);
+                new_val = -eval;
                 first = false;
             }
             else { // search with a null window.
-                let (_col, eval) = self.search(-a - 1, -a);
-                score = -eval;
+                let eval = self.search(-a - 1, -a);
+                new_val = -eval;
 
-                if a < score && score < b { // if failed high, do a full re-search.
-                    let (_col, eval) = self.search(-b, -score);
-                    score = -eval;
+                if a < new_val && new_val < b { // if failed high, do a full re-search.
+                    let eval = self.search(-b, -new_val);
+                    new_val = -eval;
                 }
             }
 
             // revert back to original position
             self.revert(m);
 
-            if score > a {
-                col = c;
-                a = score;
-            }
+            a = i8::max(new_val, a);
 
             if a >= b { // fail-high beta cutoff occurred. This is a CUT node.
-                self.transpositiontable.insert_with_key(board_key, a, FLAG_LOWER, col);
-                return (col, a);
+                self.transpositiontable.insert_with_key(board_key, a, FLAG_LOWER);
+                return a;
             }
         }
 
         // insert into transposition table.
         // fail-low occurred.
-        self.transpositiontable.insert_with_key(board_key, a, FLAG_UPPER, col);
-
-        (col, a)
+        self.transpositiontable.insert_with_key(board_key, a, FLAG_UPPER);
+        a
     }
 
     /// returns positive number upon winning. 0 for not win.

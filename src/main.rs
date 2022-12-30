@@ -203,7 +203,7 @@ fn test_files(filename: &str) -> Result<()> {
 
         // time the solve
         let start_time = Instant::now();
-        let (_mv, eval) = explorer.solve();
+        let eval = explorer.evaluate();
         let delta = start_time.elapsed().as_micros();
         totaltime += delta;
 

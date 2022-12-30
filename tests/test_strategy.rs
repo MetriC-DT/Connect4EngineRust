@@ -57,11 +57,11 @@ fn test_endgame_5() {
 #[test]
 fn test_endgame_6() {
     let line = "65214673556155731566316327373221417";
-    let (turncount, board) = run_game(line);
+    let (_turncount, board) = run_game(line);
     assert!(board.is_first_player_win());
     assert!(!board.is_second_player_win());
     assert!(!board.is_filled());
-    assert_eq!(turncount, board.moves_played() as usize - line.len())
+    assert_eq!(board.moves_played(), 41)
 }
 
 #[test]
@@ -74,21 +74,10 @@ fn test_one_move_win() {
     assert_eq!(turncount, 1);
 }
 
-#[test]
-#[ignore = "wait"]
-fn test_long_p1_win() {
-    let line = "444444";
-    let (_turncount, board) = run_game(line);
-    assert!(board.is_first_player_win());
-    assert!(!board.is_second_player_win());
-    assert!(!board.is_filled());
-    assert_eq!(board.moves_played(), 41);
-}
-
 /// runs the game, returning (num_turns, resulting board)
 fn run_game(line: &str) -> (usize, Board) {
-    let board = Board::new_position(line).unwrap();
-    let mut explorer = Explorer::with_board(board);
+    let mut board = Board::new_position(line).unwrap();
+    let mut explorer = Explorer::with_board(board.clone());
     let mut turncount = 0;
     println!("{}", board);
     let mut curr_line = line.to_string();
@@ -98,7 +87,8 @@ fn run_game(line: &str) -> (usize, Board) {
         let (col, val) = explorer.solve();
 
         evals.push(val);
-        assert!(explorer.add_mv(col).is_ok());
+        assert!(board.add(col).is_ok());
+        explorer.change_board(&board);
         curr_line.push_str(&format!("{}", col + 1));
         println!("{}", curr_line);
         println!("Move {} Eval {}\n{}", col, val, explorer.get_board());

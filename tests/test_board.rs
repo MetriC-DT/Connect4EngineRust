@@ -43,7 +43,7 @@ fn test_board_revert() {
     let mut b = Board::new_position("16357157437461355316457465722").unwrap();
     let possible = b.possible_moves();
     let orig_pos_key = b.get_unique_position_key();
-    for (mv, _col) in Moves::new(possible) {
+    for (mv, _c) in Moves::new(possible) {
         b.play(mv);
         let new_key = b.get_unique_position_key();
         assert_ne!(orig_pos_key, new_key);
