@@ -30,8 +30,19 @@ impl ScoredMoves {
     }
 
     pub fn add(&mut self, mv: Position, col: u8, score: i8) {
-        self.move_scores[self.size] = (mv, col, score);
+        let mut i = self.size;
         self.size += 1;
+        while i > 0 {
+            let (_, _, i_score) = self.move_scores[i-1];
+            if i_score < score {
+                self.move_scores[i] = self.move_scores[i-1];
+            } else {
+                break;
+            }
+
+            i -= 1;
+        }
+        self.move_scores[i] = (mv, col, score);
     }
 }
 
