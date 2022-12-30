@@ -223,7 +223,7 @@ impl Explorer {
         } else {
             let mut moves = ScoredMoves::new();
             for (m, c) in Moves::new(possible) {
-                moves.add(m, c, 0);
+                moves.add(m, c, self.board.move_score(m));
             }
             moves
         };
