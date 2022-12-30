@@ -42,9 +42,8 @@ pub struct Entry {
 }
 
 pub type Flag = u8;
-pub const FLAG_EXACT: Flag = 0;
-pub const FLAG_UPPER: Flag = 1;
-pub const FLAG_LOWER: Flag = 2;
+pub const FLAG_UPPER: Flag = 0;
+pub const FLAG_LOWER: Flag = 1;
 
 impl Entry {
     pub fn new(board_key: u64, eval: i8, flag: Flag) -> Self {
@@ -72,7 +71,7 @@ impl Entry {
 
 impl Default for Entry {
     fn default() -> Self {
-        Entry::new(EMPTY_KEY as u64, i8::MIN, FLAG_EXACT)
+        Entry::new(EMPTY_KEY as u64, i8::MIN, FLAG_UPPER)
     }
 }
 

@@ -105,11 +105,11 @@ impl Explorer {
         // we can use these bounds as our (a, b) window.
 
         // the maximum score we can get is when we win directly on our next move.
-        let start_max: i8 = Explorer::win_eval(self.moves_played + 1);
+        let start_max: i8 = Explorer::win_eval(self.moves_played);
         let start_max: i8 = i8::min(start_max, Explorer::win_eval(7)); // fastest win on 7 moves.
 
         // the minimum score we can get is when we lose on the opponent's move (2 more moves).
-        let start_min: i8 = -Explorer::win_eval(self.moves_played + 2);
+        let start_min: i8 = -Explorer::win_eval(self.moves_played);
         let start_min: i8 = i8::max(start_min, -Explorer::win_eval(8)); // fastest loss on 8 moves.
 
         let (mut min, mut max) = (start_min, start_max);
@@ -138,7 +138,7 @@ impl Explorer {
         eval
     }
 
-    /// Searches for the most optimal evaluation and move with the given position.
+    /// Searches for the most optimal evaluation after loading in a board.
     /// Applies these optimizations:
     /// * alpha-beta pruning
     /// * negamax (principal variation search)
@@ -203,37 +203,43 @@ impl Explorer {
             }
         }
 
+        // for use in principal variation search.
         let mut first = true;
 
+        // We only want to search the essential moves, if there are more than 0.
+        let next_moves = if essential_moves == 0 {
+            Moves::new(possible)
+        } else {
+            Moves::new(essential_moves)
+        };
+
         // calculate evaluation.
-        for (m, _) in Moves::new(possible) {
+        for (m, _) in next_moves {
             self.play(m);
 
-            let mut new_val;
+            let mut val;
             if first { // if first child, then assume it is the best move. Scan entire window.
-                let eval = self.search(-b, -a);
-                new_val = -eval;
+                val = -self.search(-b, -a);
                 first = false;
             }
             else { // search with a null window.
-                let eval = self.search(-a - 1, -a);
-                new_val = -eval;
+                val = -self.search(-a - 1, -a);
 
-                if a < new_val && new_val < b { // if failed high, do a full re-search.
-                    let eval = self.search(-b, -new_val);
-                    new_val = -eval;
+                if a < val && val < b { // if failed high, do a full re-search.
+                    val = -self.search(-b, -val);
                 }
             }
 
             // revert back to original position
             self.revert(m);
 
-            a = i8::max(new_val, a);
-
-            if a >= b { // fail-high beta cutoff occurred. This is a CUT node.
-                self.transpositiontable.insert_with_key(board_key, a, FLAG_LOWER);
-                return a;
+            // fail-high beta cutoff occurred. This is a CUT node.
+            if val >= b {
+                self.transpositiontable.insert_with_key(board_key, val, FLAG_LOWER);
+                return val;
             }
+
+            a = i8::max(val, a);
         }
 
         // insert into transposition table.

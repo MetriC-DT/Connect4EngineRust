@@ -1,5 +1,4 @@
 use connect4engine::board::Board;
-use connect4engine::transpositiontable::FLAG_EXACT;
 use connect4engine::transpositiontable::TranspositionTable;
 use connect4engine::transpositiontable::FLAG_UPPER;
 use connect4engine::transpositiontable::FLAG_LOWER;
@@ -45,8 +44,8 @@ fn test_evict() {
     assert_eq!(entry.get_eval(), eval_hi);
     assert_eq!(entry.get_flag(), FLAG_LOWER);
 
-    table.insert(&board, 0, FLAG_EXACT);
+    table.insert(&board, 0, FLAG_UPPER);
     let entry = table.get_entry(&board).unwrap();
     assert_eq!(entry.get_eval(), 0);
-    assert_eq!(entry.get_flag(), FLAG_EXACT);
+    assert_eq!(entry.get_flag(), FLAG_UPPER);
 }

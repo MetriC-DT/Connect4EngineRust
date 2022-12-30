@@ -48,6 +48,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+/// prints the evaluation and optimal move for a given position.
 fn eval_position(pos: &str) -> Result<()> {
     let board = Board::new_position(pos)?;
     let mut explorer = Explorer::with_board(board);
