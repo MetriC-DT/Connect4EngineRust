@@ -3,6 +3,7 @@ use crate::moves::EMPTY_MOVE;
 
 /// a Moves-like iterator but with the moves stored from low scores to high.
 /// Higher scores are returned from the iterator before lower ones.
+#[derive(Clone)]
 pub struct ScoredMoves {
 
     /// array of (Position, corresponding_col, position_score) for each possible move.
@@ -32,14 +33,16 @@ impl ScoredMoves {
     pub fn add(&mut self, mv: Position, col: u8, score: i8) {
         let mut i = self.size;
         self.size += 1;
-        while i > 0 {
-            let (_, _, i_score) = self.move_scores[i-1];
-            if i_score < score {
-                self.move_scores[i] = self.move_scores[i-1];
-            } else {
-                break;
-            }
 
+        // insert into the move_scores array such that moves with higher scores are stored at lower
+        // indices of the array compared to lower scores. In the case of ties, we would insert
+        // into the next higher index.
+        //
+        // We insert from the back of the array since on average, the order would be the same, or
+        // similar enough to the order `add` was called, which would result in the least amount of
+        // data being copied.
+        while i > 0 && self.move_scores[i-1].2 < score {
+            self.move_scores[i] = self.move_scores[i-1];
             i -= 1;
         }
         self.move_scores[i] = (mv, col, score);
