@@ -175,12 +175,14 @@ impl Explorer {
 
         // if we had lost, it would have been on the turn after the next.
         // if a is less than the minimum possible score we can achieve, we can raise the bounds.
+        // TODO - subtract moves by 1 in order to be able to obtain an exact node.
         let min_eval = -Explorer::win_eval(self.moves_played + 2);
         a = i8::max(a, min_eval);
 
         // if we had won, it would have been on the next turn.
         // if b is greater than the maximum possible score we can achieve, we can lower the bounds.
         // This gives us additional chances to see if we can prune.
+        // TODO - subtract moves by 1 in order to be able to obtain an exact node.
         let max_eval = Explorer::win_eval(self.moves_played + 3);
         b = i8::min(b, max_eval);
 

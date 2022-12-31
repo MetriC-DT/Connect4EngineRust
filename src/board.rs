@@ -235,8 +235,8 @@ impl Board {
     /// mv must be a valid move in possible. Undefined behavior if not.
     pub fn move_score(&self, mv: Position) -> i8 {
         let player = self.board ^ self.total_board;
-        let not_controlled_by_opp = PLAYABLE_REGION ^ self.board;
-        let winning_position = Board::winning_moves(player | mv, not_controlled_by_opp);
+        let not_taken = PLAYABLE_REGION ^ self.total_board;
+        let winning_position = Board::winning_moves(player | mv, not_taken);
         return winning_position.count_ones() as i8;
     }
 
