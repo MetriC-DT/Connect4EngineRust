@@ -119,7 +119,7 @@ impl Explorer {
         let start_min: i8 = -Explorer::win_eval(self.moves_played);
         let start_min: i8 = i8::max(start_min, -Explorer::win_eval(8)); // fastest loss on 8 moves.
 
-        let (mut min, mut max) = (start_min, start_max);
+        let (mut min, mut max) = (start_min - 1, start_max + 1);
         let mut eval = 0;
 
         // we will use the null window to check if our score is higher or lower. We will basically
@@ -165,6 +165,14 @@ impl Explorer {
             return TIE_SCORE;
         }
 
+        let possible = self.board.possible_moves();
+        let winning_moves = self.board.player_win_moves(possible);
+
+        // quick endgame lookahead. checks if can win in 1 move.
+        if winning_moves != 0 {
+            return Explorer::win_eval(self.moves_played + 1);
+        }
+
         // if we had lost, it would have been on the turn after the next.
         // if a is less than the minimum possible score we can achieve, we can raise the bounds.
         let min_eval = -Explorer::win_eval(self.moves_played + 2);
@@ -173,7 +181,7 @@ impl Explorer {
         // if we had won, it would have been on the next turn.
         // if b is greater than the maximum possible score we can achieve, we can lower the bounds.
         // This gives us additional chances to see if we can prune.
-        let max_eval = Explorer::win_eval(self.moves_played + 1);
+        let max_eval = Explorer::win_eval(self.moves_played + 3);
         b = i8::min(b, max_eval);
 
         // prune, as this is a cut node.
@@ -181,18 +189,10 @@ impl Explorer {
             return a;
         }
 
-        let possible = self.board.possible_moves();
-        let winning_moves = self.board.player_win_moves(possible);
-
-        // quick endgame lookahead. checks if can win in 1 move.
-        if winning_moves != 0 {
-            return max_eval;
-        }
-
         // if there are more than 1 move that enables opponent to win, we are toast.
         let essential_moves = self.board.opp_win_moves(possible);
         if essential_moves != 0 && !Board::at_most_one_bit_set(essential_moves) {
-            return min_eval;
+            return -Explorer::win_eval(self.moves_played + 2);
         }
 
         // the unique key to represent the board in order to insert or search transposition table.
