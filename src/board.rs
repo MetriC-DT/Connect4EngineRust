@@ -229,6 +229,17 @@ impl Board {
         Board::winning_moves(opp, possible)
     }
 
+    /// calculates the score of a position if a player decides to play `mv`. This is used in move
+    /// ordering. mv is the move played.
+    ///
+    /// mv must be a valid move in possible. Undefined behavior if not.
+    pub fn move_score(&self, mv: Position) -> i8 {
+        let player = self.board ^ self.total_board;
+        let not_controlled_by_opp = PLAYABLE_REGION ^ self.board;
+        let winning_position = Board::winning_moves(player | mv, not_controlled_by_opp);
+        return winning_position.count_ones() as i8;
+    }
+
     /// returns the moves that the current player can use to win.
     pub fn player_win_moves(&self, possible: Position) -> Position {
         let player = self.board ^ self.total_board;

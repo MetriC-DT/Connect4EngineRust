@@ -1,3 +1,4 @@
+use crate::scoredmoves::ScoredMoves;
 use crate::transpositiontable::{TranspositionTable, FLAG_UPPER, FLAG_LOWER};
 use crate::moves::{EMPTY_MOVE, Moves};
 use crate::board::{SIZE, Board, Position};
@@ -215,10 +216,16 @@ impl Explorer {
         let mut first = true;
 
         // We only want to search the essential moves, if there are more than 0.
-        let next_moves = if essential_moves == 0 {
-            Moves::new(possible)
+        let next_moves = if essential_moves != 0 {
+            let column = Board::pos_to_col(essential_moves);
+            ScoredMoves::new_with(essential_moves, column, i8::MAX)
+
         } else {
-            Moves::new(essential_moves)
+            let mut moves = ScoredMoves::new();
+            for (m, c) in Moves::new(possible) {
+                moves.add(m, c, self.board.move_score(m));
+            }
+            moves
         };
 
         // calculate evaluation.
