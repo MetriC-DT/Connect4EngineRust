@@ -7,10 +7,9 @@ A strong solver for Connect 4 built with rust. Inspiration from [here](https://g
 - [x] Move ordering
     - [x]  center-first to edge columns
     - [x]  critical moves first
-    - [ ]  position heuristic
+    - [x]  position heuristic
     - [ ] Refutation Move (with Transposition Table)
-- [x] Transposition Table
-- [x] Principal Variation Search
+- [x] Transposition Table (Two-Tiered)
 - [x] Iterative Deepening
 - [ ] Saves Principal Variation
 - [ ] NNUE
