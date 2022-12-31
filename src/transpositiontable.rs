@@ -1,4 +1,4 @@
-use crate::board::Board;
+use crate::{board::Board, moves::EMPTY_MOVE};
 
 /// Using the Chinese remainder theorem, using our key (which could be encoded in 49 bits), the
 /// two co-prime divisors are 2^(STORED_KEY_BITS) and MAX_TABLE_SIZE. Hence,
@@ -15,16 +15,13 @@ use crate::board::Board;
 /// With the Chinese remainder theorem, the size must be greater than 2^17, since the
 /// STORED_KEY_BITS is 32 bits and we need to uniquely encode 2^49 numbers (49-32=17), where 2^49 is
 /// number of different keys to encode.
-const MAX_TABLE_SIZE: usize = 8388593;
+pub const MAX_TABLE_SIZE: usize = 8388593;
 
 /// number of bits used to store the key (refer to explanation above why we don't use all 49 bits.)
 const STORED_KEY_BITS: u64 = 32;
 
 /// 32 bit mask for finding the key bits to store.
 const STORED_KEY_BIT_MASK: u64 = (1 << STORED_KEY_BITS) - 1;
-
-/// flag bits (lowest 2 bits of the metadata)
-const FLAG_BIT_MASK: u8 = 0b11;
 
 /// empty key.
 const EMPTY_KEY: u32 = u32::MAX;
@@ -38,7 +35,9 @@ const EMPTY_KEY: u32 = u32::MAX;
 pub struct Entry {
     stored_key: u32,
     eval: i8,
-    metadata: u8
+    flag: u8,
+    depth: u8,
+    mv: u8
 }
 
 pub type Flag = u8;
@@ -46,10 +45,9 @@ pub const FLAG_UPPER: Flag = 0;
 pub const FLAG_LOWER: Flag = 1;
 
 impl Entry {
-    pub fn new(board_key: u64, eval: i8, flag: Flag) -> Self {
+    pub fn new(board_key: u64, eval: i8, flag: Flag, depth: u8, mv: u8) -> Self {
         let stored_key = u32::try_from(board_key & STORED_KEY_BIT_MASK).unwrap();
-        let metadata = flag;
-        Self { stored_key, eval, metadata }
+        Self { stored_key, eval, flag, depth, mv }
     }
 
     pub fn get_key(&self) -> u32 {
@@ -61,7 +59,15 @@ impl Entry {
     }
 
     pub fn get_flag(&self) -> Flag {
-        self.metadata & FLAG_BIT_MASK
+        self.flag
+    }
+
+    pub fn get_depth(&self) -> u8 {
+        self.depth
+    }
+
+    pub fn get_mv(&self) -> u8 {
+        self.mv
     }
 
     pub fn wipe(&mut self) {
@@ -71,12 +77,18 @@ impl Entry {
 
 impl Default for Entry {
     fn default() -> Self {
-        Entry::new(EMPTY_KEY as u64, i8::MIN, FLAG_UPPER)
+        Entry::new(EMPTY_KEY as u64, i8::MIN, FLAG_UPPER, u8::MAX, EMPTY_MOVE)
     }
 }
 
 #[derive(Debug)]
 pub struct TranspositionTable {
+    /// each entry of the table consists of 2 entries, with 2 different replacement policies:
+    /// table_entry.0 = entry that is always replaced by new entries.
+    /// table_entry.1 = replacement only happens when new entry has depth <= existing.
+    ///
+    /// since depth is calculated == moves_made, a smaller moves_made means we can scan less of the
+    /// tree if we cache that result.
     table: Vec<(Entry, Entry)>
 }
 
@@ -89,16 +101,22 @@ impl TranspositionTable {
     }
 
     /// inserts the board game state and evaluation into the transposition table.
-    pub fn insert(&mut self, board: &Board, eval: i8, flag: Flag) {
+    pub fn insert(&mut self, board: &Board, eval: i8, flag: Flag, depth: u8, mv: u8) {
         let key = board.get_unique_position_key();
-        self.insert_with_key(key, eval, flag);
+        self.insert_with_key(key, eval, flag, depth, mv);
     }
 
     /// inserts the board game state and eval into transposition table using key.
-    pub fn insert_with_key(&mut self, key: u64, eval: i8, flag: Flag) {
-        let entry = Entry::new(key, eval, flag);
+    pub fn insert_with_key(&mut self, key: u64, eval: i8, flag: Flag, depth: u8, mv: u8) {
+        let entry = Entry::new(key, eval, flag, depth, mv);
         let loc = TranspositionTable::location(key);
-        self.table[loc] = entry;
+        self.table[loc].0 = entry.clone(); // always replace
+
+        // replace 1 entry only if depth is lower.
+        let orig_entry = &self.table[loc].1;
+        if depth <= orig_entry.get_depth() {
+            self.table[loc].1 = entry;
+        }
     }
 
     /// obtains the location of the key into the transposition table.
@@ -109,16 +127,23 @@ impl TranspositionTable {
 
     /// Gets the entry using the given board to calculate the key.
     /// bool determines whether the key matches (whether entry is valid).
-    pub fn get_entry(&self, board: &Board) -> (&Entry, bool) {
+    pub fn get_entry(&self, board: &Board) -> Option<&Entry> {
         let key = board.get_unique_position_key();
         self.get_entry_with_key(key)
     }
 
     /// obtains the selected entry, given a key.
-    pub fn get_entry_with_key(&self, key: u64) -> (&Entry, bool) {
+    pub fn get_entry_with_key(&self, key: u64) -> Option<&Entry> {
         let loc = TranspositionTable::location(key);
-        let entry = &self.table[loc];
-        let valid = (key & STORED_KEY_BIT_MASK) as u32 == entry.get_key();
-        return (entry, valid)
+        let (entry0, entry1) = &self.table[loc];
+        let new_key = (key & STORED_KEY_BIT_MASK) as u32;
+
+        if entry0.get_key() == new_key {
+            return Some(entry0);
+        } else if entry1.get_key() == new_key {
+            return Some(entry1);
+        } else {
+            return None
+        }
     }
 }

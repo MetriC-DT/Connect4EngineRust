@@ -1,4 +1,5 @@
 use connect4engine::board::Board;
+use connect4engine::transpositiontable::MAX_TABLE_SIZE;
 use connect4engine::transpositiontable::TranspositionTable;
 use connect4engine::transpositiontable::FLAG_UPPER;
 use connect4engine::transpositiontable::FLAG_LOWER;
@@ -9,14 +10,19 @@ fn test_insert_get() {
     let eval_hi = 5;
 
     let mut table = TranspositionTable::new();
-    let (_entry, valid) = table.get_entry(&board);
-    assert!(!valid);
+    let entry = table.get_entry(&board);
+    assert!(entry.is_none());
 
-    table.insert(&board, eval_hi, FLAG_UPPER);
-    let (entry, valid) = table.get_entry(&board);
-    assert!(valid);
+    table.insert(&board, eval_hi, FLAG_UPPER, 15, 3);
+    let entry = table.get_entry(&board);
+
+    assert!(entry.is_some());
+    let entry = entry.unwrap();
+
     assert_eq!(entry.get_eval(), eval_hi);
     assert_eq!(entry.get_flag(), FLAG_UPPER);
+    assert_eq!(entry.get_depth(), 15);
+    assert_eq!(entry.get_mv(), 3);
 }
 
 #[test]
@@ -25,34 +31,62 @@ fn test_insert_get_negative() {
     let eval_hi = -1;
 
     let mut table = TranspositionTable::new();
-    let (_entry, valid) = table.get_entry(&board);
-    assert!(!valid);
+    let entry = table.get_entry(&board);
+    assert!(entry.is_none());
 
-    table.insert(&board, eval_hi, FLAG_UPPER);
-    let (entry, valid) = table.get_entry(&board);
-    assert!(valid);
+    table.insert(&board, eval_hi, FLAG_UPPER, 15, 3);
+    let entry = table.get_entry(&board);
+    assert!(entry.is_some());
+    let entry = entry.unwrap();
     assert_eq!(entry.get_eval(), eval_hi);
     assert_eq!(entry.get_flag(), FLAG_UPPER);
 }
 
 #[test]
-fn test_evict() {
-    let board = Board::new_position("44444752222436656566263375515127171771313").unwrap();
-    let eval_hi = 10;
-
+fn test_collision() {
     let mut table = TranspositionTable::new();
-    let (_entry, valid) = table.get_entry(&board);
-    assert!(!valid);
+    let key1: u64 = 3;
+    let key2 = MAX_TABLE_SIZE as u64 + key1;
+    let entry = table.get_entry_with_key(key1);
+    assert!(entry.is_none());
 
-    table.insert(&board, eval_hi, FLAG_LOWER);
-    let (entry, valid) = table.get_entry(&board);
-    assert!(valid);
-    assert_eq!(entry.get_eval(), eval_hi);
-    assert_eq!(entry.get_flag(), FLAG_LOWER);
+    // expect to have entry1
+    let depth1 = 15;
+    let eval1 = 13;
+    let flag1 = FLAG_LOWER;
+    let mv1 = 3;
+    table.insert_with_key(key1, eval1, flag1, depth1, mv1);
+    let entry = table.get_entry_with_key(key1);
+    assert!(entry.is_some());
 
-    table.insert(&board, 0, FLAG_UPPER);
-    let (entry, valid) = table.get_entry(&board);
-    assert!(valid);
-    assert_eq!(entry.get_eval(), 0);
-    assert_eq!(entry.get_flag(), FLAG_UPPER);
+    let entry = entry.unwrap();
+    assert_eq!(entry.get_eval(), eval1);
+    assert_eq!(entry.get_flag(), flag1);
+    assert_eq!(entry.get_depth(), depth1);
+    assert_eq!(entry.get_mv(), mv1);
+
+    // expect to have entry2
+    let depth2 = 16;
+    let eval2 = 14;
+    let flag2 = FLAG_UPPER;
+    let mv2 = 4;
+    table.insert_with_key(key2, eval2, flag2, depth2, mv2);
+    let entry = table.get_entry_with_key(key2);
+    assert!(entry.is_some());
+
+    let entry = entry.unwrap();
+    assert_eq!(entry.get_eval(), eval2);
+    assert_eq!(entry.get_flag(), flag2);
+    assert_eq!(entry.get_depth(), depth2);
+    assert_eq!(entry.get_mv(), mv2);
+
+    // expect entry1 to still be around.
+    let entry = table.get_entry_with_key(key1);
+    assert!(entry.is_some());
+
+    let entry = entry.unwrap();
+    assert_eq!(entry.get_eval(), eval1);
+    assert_eq!(entry.get_flag(), flag1);
+    assert_eq!(entry.get_depth(), depth1);
+    assert_eq!(entry.get_mv(), mv1);
 }

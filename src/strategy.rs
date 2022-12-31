@@ -199,8 +199,7 @@ impl Explorer {
         let board_key = self.board.get_unique_position_key();
 
         // look up evaluation in transposition table
-        let (entry, valid) = self.transpositiontable.get_entry_with_key(board_key);
-        if valid {
+        if let Some(entry) = self.transpositiontable.get_entry_with_key(board_key) {
             let flag = entry.get_flag();
             let val = entry.get_eval();
 
@@ -214,6 +213,8 @@ impl Explorer {
 
         // for use in principal variation search.
         let mut first = true;
+        let mut final_eval = -MAX_SCORE;
+        let depth = self.moves_played as u8;
 
         // We only want to search the essential moves, if there are more than 0.
         let next_moves = if essential_moves != 0 {
@@ -229,7 +230,7 @@ impl Explorer {
         };
 
         // calculate evaluation.
-        for (m, _) in next_moves {
+        for (m, c) in next_moves {
             self.play(m);
 
             let mut val;
@@ -250,17 +251,18 @@ impl Explorer {
 
             // fail-high beta cutoff occurred. This is a CUT node.
             if val >= b {
-                self.transpositiontable.insert_with_key(board_key, val, FLAG_LOWER);
+                self.transpositiontable.insert_with_key(board_key, val, FLAG_LOWER, depth, c);
                 return val;
             }
 
             a = i8::max(val, a);
+            final_eval = i8::max(val, final_eval);
         }
 
         // insert into transposition table.
         // fail-low occurred.
-        self.transpositiontable.insert_with_key(board_key, a, FLAG_UPPER);
-        a
+        self.transpositiontable.insert_with_key(board_key, final_eval, FLAG_UPPER, depth, EMPTY_MOVE);
+        final_eval
     }
 
     /// returns positive number upon winning. 0 for not win.
