@@ -21,10 +21,18 @@ def validate(file1, file2):
     print("OK")
 
 if __name__ == "__main__":
-    file_to_check = sys.argv[1]
     os.makedirs(name='test_outputs', exist_ok=True)
-    basename = os.path.basename(file_to_check)
-    outputfile = f'test_outputs/{basename}.log'
-    os.system(f'RUSTFLAGS="-C target-cpu=native" cargo r --release -- -t {file_to_check} > {outputfile}')
-    validate(file_to_check, outputfile)
-    os.system(f'tail -n5 test_outputs/{basename}.log')
+
+    if len(sys.argv) == 1:
+        files = [os.path.basename(f) for f in os.listdir("test_outputs")]
+        files = ["test_inputs/" + f[:-4] for f in files]
+        print(files)
+    else:
+        files = sys.argv[1:]
+
+    for file_to_check in files:
+        basename = os.path.basename(file_to_check)
+        outputfile = f'test_outputs/{basename}.log'
+        os.system(f'RUSTFLAGS="-C target-cpu=native" cargo r --release -- -t {file_to_check} > {outputfile}')
+        validate(file_to_check, outputfile)
+        os.system(f'tail -n5 test_outputs/{basename}.log')
