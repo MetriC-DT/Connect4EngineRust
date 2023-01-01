@@ -99,8 +99,6 @@ impl Explorer {
         let start_min: i8 = -Explorer::win_eval(board.moves_played() + 2);
         let start_min: i8 = i8::max(start_min, -Explorer::win_eval(8)); // fastest loss on 8 moves.
 
-        // -1 and +1 on the ends in order for us to be able to obtain an exact move.
-        let (min, max) = (start_min - 1, start_max + 1);
 
         // our principal variation is guaranteed to be evaluated within the bounds (min, max).
         // However, we can have an aspiration window to reduce the number of nodes to search.
@@ -112,10 +110,47 @@ impl Explorer {
         // comparatively lower depths relative to windows nearer to the center, due to the way our
         // winning scores are assigned (e.g. MAX_SCORE - moves_played).
         //
-        // The strategy used to scan for moves would start from the lowest possible window and scan
-        // up to the highest possible windows.
+        // The strategy used to scan for moves would start from the lowest possible window, go scan
+        // the highest window (using larger), and then if those did not find any, then scan middle,
+        // using updated bounds.
 
-        self.search(board, min, max)
+        // -1 and +1 on the bounds in order for us to be able to obtain an exact move.
+        if start_max - start_min >= 14 {
+            let sz = 5;
+            let (mut g_min, mut g_max) = (start_min, start_max);
+            let (mut min, mut max) = (g_min, g_min + sz);
+            let mut low = true;
+
+            loop {
+                let asp_min = if low { g_min - 1 } else { min - 1 };
+                let asp_max = if low { max + 1 } else { g_max + 1 };
+                let eval = self.search(board, asp_min, asp_max);
+
+                if asp_min < eval && eval < asp_max {
+                    return eval;
+                }
+                else if eval <= asp_min { // failed low.
+                    if low {
+                        panic!("Should not fail low with a low scan");
+                    }
+                    g_max = asp_min;
+                    max = g_min + sz;
+                }
+                else if eval >= asp_max { // failed high.
+                    if !low {
+                        panic!("Should not fail high with a high scan");
+                    }
+                    g_min = asp_max;
+                    min = g_max - sz;
+                }
+
+                // switch from low scan to high scan
+                low = !low;
+            }
+        }
+        else {
+            return self.search(board, start_min - 1, start_max + 1);
+        }
     }
 
     /// Searches for the most optimal evaluation after loading in a board.
@@ -123,6 +158,7 @@ impl Explorer {
     /// * alpha-beta pruning
     /// * negamax (principal variation search)
     /// * transposition table
+    /// * Fail-soft boundaries
     fn search(&mut self,
               board: &Board,
               mut a: i8,
@@ -218,10 +254,10 @@ impl Explorer {
         let mut first = true;
         let mut final_eval = -MAX_SCORE;
         let mut final_mv = EMPTY_MOVE;
+        let mut boardcpy = *board;
         let a_orig = a;
 
         // calculate evaluation.
-        let mut boardcpy = *board;
         for (m, c) in next_moves {
             boardcpy.play(m);
 
