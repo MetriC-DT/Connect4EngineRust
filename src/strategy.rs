@@ -6,6 +6,7 @@ use crate::board::{SIZE, Board};
 pub const MAX_SCORE: i8 = 1 + SIZE as i8;
 pub const TIE_SCORE: i8 = 0;
 pub const PV_SIZE: usize = SIZE as usize;
+const REFUTATION_SCORE: i8 = 10;
 
 // Evaluation table for number of possible 4-in-a-rows
 /*
@@ -180,13 +181,22 @@ impl Explorer {
         }
 
         // look up evaluation in transposition table
+        let mut refutation = EMPTY_MOVE;
+
         if let Some(entry) = self.transpositiontable.get_entry_with_key(board_key) {
             let flag = entry.get_flag();
             let val = entry.get_eval();
 
-            if flag == FLAG_LOWER { a = i8::max(a, val); }
-            else if flag == FLAG_UPPER { b = i8::min(b, val); }
-            else { return val; }
+            if flag == FLAG_LOWER { // Failed high. We can update refutation move.
+                a = i8::max(a, val);
+                refutation = entry.get_mv();
+            }
+            else if flag == FLAG_UPPER { // Failed low.
+                b = i8::min(b, val);
+            }
+            else { // exact node.
+                return val;
+            }
 
             if a >= b { // CUT node.
                 return val;
@@ -201,7 +211,11 @@ impl Explorer {
         } else {
             let mut moves = ScoredMoves::new();
             for (m, c) in Moves::new(possible) {
-                moves.add(m, c, board.move_score(m));
+                if refutation == c { // prioritize searching refutation move first.
+                    moves.add(m, c, REFUTATION_SCORE);
+                } else {
+                    moves.add(m, c, board.move_score(m));
+                }
             }
             moves
         };
