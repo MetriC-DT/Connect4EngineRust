@@ -102,6 +102,24 @@ impl Explorer {
         // -1 and +1 on the ends in order for us to be able to obtain an exact move.
         let (min, max) = (start_min - 1, start_max + 1);
 
+        // our principal variation is guaranteed to be evaluated within the bounds (min, max).
+        // However, we can have an aspiration window to reduce the number of nodes to search.
+        //
+        // We are finished if we find an evaluation in the non-inclusive range (min, max).
+        // Searching at lower windows (e.g. nearer to min) results in less fail-lows, which means
+        // that we get a conclusive result (whether the evaluation was found or not) with fewer
+        // nodes scanned. Additionally, windows near the extremes of range (min, max) are also at
+        // comparatively lower depths relative to windows nearer to the center, due to the way our
+        // winning scores are assigned (e.g. MAX_SCORE - moves_played).
+        //
+        // Additionally, for the first 2 plys, we can leverage the fact that the evaluations are
+        // at maximum, a score of 2, and a minimum score of -2. We can set this to be the
+        // aspiration window, for board.moves_played == 0 or 1 (maybe I should have a table of
+        // aspiration window for moves made?).
+        //
+        // The strategy used to scan for moves would start from the lowest possible window and scan
+        // up to the highest possible windows.
+
         self.search(board, min, max)
     }
 
