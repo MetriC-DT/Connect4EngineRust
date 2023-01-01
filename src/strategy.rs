@@ -38,43 +38,31 @@ impl Explorer {
     /// returns the optimal move and evaluation for this explorer's current position.
     pub fn solve(&mut self, board: &Board) -> (u8, i8) {
         // TODO - check if move is in openings database.
-        let mut b = board.clone();
-        let moves_played = b.moves_played();
 
-        // Checks if the game is already over.
-        if b.has_winner() {
-            // if board has winner already, then assume the current player is loser.
-            // Therefore, the score would be negative.
-            return (EMPTY_MOVE, -Explorer::win_eval(moves_played));
-        }
-        else if b.is_filled() {
-            return (EMPTY_MOVE, TIE_SCORE);
+        // needs to clear our transposition table first.
+        self.transpositiontable.clear();
+        let eval = self.evaluate(board);
+
+        if let Some(entry) = self.transpositiontable.get_non_upper_entry(board) {
+            return (entry.get_mv(), eval);
         }
 
-        // needs to evaluate every of the positions that could result from the current.
-        let possible = b.possible_moves();
-        let mut pairs = Vec::new();
-
-        for (mv, _c) in Moves::new(possible) {
-            b.play(mv);
-            let col = Board::pos_to_col(mv);
-            if b.has_winner() {
-                let eval = Explorer::win_eval(b.moves_played());
-                return (col, eval);
-            } else {
-                let eval = -self.evaluate(&b);
-                pairs.push((mv, eval));
-            }
-
-            b.revert(mv);
-        }
-
-        let (mv, eval) = pairs.into_iter().max_by_key(|&(_m, v)| { v }).unwrap();
-        (Board::pos_to_col(mv), eval)
+        // TODO - got here. Must do a re-search.
+        panic!("Node not found in transposition table.")
     }
 
     /// evaluates the position, but doesn't return a corresponding move.
     pub fn evaluate(&mut self, board: &Board) -> i8 {
+        // Checks if the game is already over.
+        if board.has_winner() {
+            // if board has winner already, then assume the current player is loser.
+            // Therefore, the score would be negative.
+            return -Explorer::win_eval(board.moves_played());
+        }
+        else if board.is_filled() {
+            return TIE_SCORE;
+        }
+
         // game is guaranteed to not be over. Therefore, we need to search.
         // Since our score is calculated with best_score = MAX_SCORE - moves_played,
         // we can use these bounds as our (a, b) window.
@@ -154,14 +142,14 @@ impl Explorer {
         // if we had lost, it would have been on the turn after the next.
         // if a is less than the minimum possible score we can achieve, we can raise the bounds.
         // TODO - subtract moves by 1 in order to be able to obtain an exact node.
-        let min_eval = -Explorer::win_eval(moves_played + 2);
+        let min_eval = -Explorer::win_eval(moves_played + 1);
         a = i8::max(a, min_eval);
 
         // if we had won, it would have been on the next turn.
         // if b is greater than the maximum possible score we can achieve, we can lower the bounds.
         // This gives us additional chances to see if we can prune.
         // TODO - subtract moves by 1 in order to be able to obtain an exact node.
-        let max_eval = Explorer::win_eval(moves_played + 3);
+        let max_eval = Explorer::win_eval(moves_played + 2);
         b = i8::min(b, max_eval);
 
         // prune, as this is a cut node.
@@ -185,15 +173,12 @@ impl Explorer {
 
             if flag == FLAG_LOWER { a = i8::max(a, val); }
             else if flag == FLAG_UPPER { b = i8::min(b, val); }
+            else { return val; }
 
             if a >= b { // CUT node.
                 return val;
             }
         }
-
-        // for use in principal variation search.
-        let mut first = true;
-        let mut final_eval = -MAX_SCORE;
 
         // We only want to search the essential moves, if there are more than 0.
         let next_moves = if essential_moves != 0 {
@@ -207,6 +192,12 @@ impl Explorer {
             }
             moves
         };
+
+        // for use in principal variation search.
+        let mut first = true;
+        let mut final_eval = -MAX_SCORE;
+        let mut final_mv = EMPTY_MOVE;
+        let a_orig = a;
 
         // calculate evaluation.
         let mut boardcpy = *board;
@@ -231,17 +222,27 @@ impl Explorer {
 
             // fail-high beta cutoff occurred. This is a CUT node.
             if val >= b {
+                // move inserted is refutation move.
+                // can use this inserted move for move ordering.
                 self.transpositiontable.insert_with_key(board_key, val, FLAG_LOWER, depth, c);
                 return val;
             }
 
-            a = i8::max(val, a);
-            final_eval = i8::max(val, final_eval);
+            if val > final_eval {
+                a = i8::max(val, a);
+                final_eval = val;
+                final_mv = c;
+            }
         }
 
         // insert into transposition table.
-        // fail-low occurred.
-        self.transpositiontable.insert_with_key(board_key, final_eval, FLAG_UPPER, depth, EMPTY_MOVE);
+        if a > a_orig { // this is an exact node since a < val < b.
+            self.transpositiontable.insert_with_key(board_key, final_eval, FLAG_EXACT, depth, final_mv);
+        }
+        else { // fail-low occurred.
+            self.transpositiontable.insert_with_key(board_key, final_eval, FLAG_UPPER, depth, EMPTY_MOVE);
+        }
+
         final_eval
     }
 

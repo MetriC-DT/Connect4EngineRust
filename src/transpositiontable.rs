@@ -71,7 +71,7 @@ impl Entry {
         self.mv
     }
 
-    pub fn wipe(&mut self) {
+    pub fn clear(&mut self) {
         self.stored_key = EMPTY_KEY;
     }
 }
@@ -86,9 +86,9 @@ impl Default for Entry {
 pub struct TranspositionTable {
     /// each entry of the table consists of 2 entries, with 2 different replacement policies:
     /// table_entry.0 = entry that is always replaced by new entries.
-    /// table_entry.1 = replacement only happens when new entry has depth <= existing.
+    /// table_entry.1 = replacement only happens when new entry has depth < existing.
     ///
-    /// since depth is calculated == moves_made, a smaller moves_made means we can scan less of the
+    /// since depth == moves_made, a smaller moves_made means we can scan less of the
     /// tree if we cache that result.
     table: Vec<(Entry, Entry)>
 }
@@ -115,7 +115,7 @@ impl TranspositionTable {
 
         // replace 1 entry only if depth is lower.
         let orig_entry = &self.table[loc].1;
-        if depth <= orig_entry.get_depth() {
+        if depth < orig_entry.get_depth() {
             self.table[loc].1 = entry;
         }
     }
@@ -133,6 +133,25 @@ impl TranspositionTable {
         self.get_entry_with_key(key)
     }
 
+    pub fn get_non_upper_entry(&self, board: &Board) -> Option<&Entry> {
+        let key = board.get_unique_position_key();
+        let new_key = (key & STORED_KEY_BIT_MASK) as u32;
+        let loc = TranspositionTable::location(key);
+        let entry = &self.table[loc];
+
+        if entry.0.get_key() == new_key && entry.0.get_flag() == FLAG_EXACT {
+            return Some(&entry.0);
+        } else if entry.1.get_key() == new_key && entry.1.get_flag() == FLAG_EXACT {
+            return Some(&entry.1);
+        } else if entry.0.get_key() == new_key && entry.0.get_flag() == FLAG_LOWER {
+            return Some(&entry.0);
+        } else if entry.1.get_key() == new_key && entry.1.get_flag() == FLAG_LOWER {
+            return Some(&entry.1);
+        } else {
+            return None;
+        }
+    }
+
     /// obtains the selected entry, given a key.
     pub fn get_entry_with_key(&self, key: u64) -> Option<&Entry> {
         let loc = TranspositionTable::location(key);
@@ -145,6 +164,13 @@ impl TranspositionTable {
             return Some(entry1);
         } else {
             return None
+        }
+    }
+
+    pub fn clear(&mut self) {
+        for entry in self.table.iter_mut() {
+            entry.0.clear();
+            entry.1.clear();
         }
     }
 }
