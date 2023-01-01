@@ -95,30 +95,6 @@ impl Explorer {
         // -1 and +1 on the ends in order for us to be able to obtain an exact move.
         let (min, max) = (start_min - 1, start_max + 1);
 
-        // let mut eval = 0;
-
-        // we will use the null window to check if our score is higher or lower. We will basically
-        // use a binary search to home in on the correct node within the correct narrower window.
-        // TODO - this should be subject to change, as we want to scan shallower depths before
-        // deeper depths, and shallower ones are closer to either `min` or `max`.
-        // while min < max {
-        //     let mut med = min + (max - min)/2;
-        //     if med <= 0 && min/2 < med {
-        //         med = min/2;
-        //     }
-        //     else if med >= 0 && max/2 > med {
-        //         med = max/2;
-        //     }
-
-        //     eval = self.search(&board, med, med + 1); // the null window search
-        //     if eval <= med {
-        //         max = eval;
-        //     }
-        //     else {
-        //         min = eval;
-        //     }
-        // }
-
         self.search(board, min, max)
     }
 
