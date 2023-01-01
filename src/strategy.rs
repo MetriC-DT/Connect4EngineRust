@@ -40,15 +40,17 @@ impl Explorer {
     pub fn solve(&mut self, board: &Board) -> (u8, i8) {
         // TODO - check if move is in openings database.
 
-        // needs to clear our transposition table first.
+        // needs to clear our transposition table first. Otherwise, we might store some nodes that
+        // failed low, which are unusable for finding the principal variation.
         self.transpositiontable.clear();
+
         let eval = self.evaluate(board);
 
         if let Some(entry) = self.transpositiontable.get_non_upper_entry(board) {
             return (entry.get_mv(), eval);
         }
 
-        // TODO - got here. Position probably is winning by next move, or losing by next opponent
+        // Position probably is winning by next move, or losing by next opponent
         // move since we don't store those values in the transposition table.
         let possible = board.possible_moves();
 
@@ -133,14 +135,12 @@ impl Explorer {
 
         // if we had lost, it would have been on the turn after the next.
         // if a is less than the minimum possible score we can achieve, we can raise the bounds.
-        // TODO - subtract moves by 1 in order to be able to obtain an exact node.
         let min_eval = -Explorer::win_eval(moves_played + 1);
         a = i8::max(a, min_eval);
 
         // if we had won, it would have been on the next turn.
         // if b is greater than the maximum possible score we can achieve, we can lower the bounds.
         // This gives us additional chances to see if we can prune.
-        // TODO - subtract moves by 1 in order to be able to obtain an exact node.
         let max_eval = Explorer::win_eval(moves_played + 2);
         b = i8::min(b, max_eval);
 
