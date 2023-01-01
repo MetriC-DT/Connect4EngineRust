@@ -112,11 +112,6 @@ impl Explorer {
         // comparatively lower depths relative to windows nearer to the center, due to the way our
         // winning scores are assigned (e.g. MAX_SCORE - moves_played).
         //
-        // Additionally, for the first 2 plys, we can leverage the fact that the evaluations are
-        // at maximum, a score of 2, and a minimum score of -2. We can set this to be the
-        // aspiration window, for board.moves_played == 0 or 1 (maybe I should have a table of
-        // aspiration window for moves made?).
-        //
         // The strategy used to scan for moves would start from the lowest possible window and scan
         // up to the highest possible windows.
 
