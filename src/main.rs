@@ -53,6 +53,7 @@ fn eval_position(pos: &str) -> Result<()> {
     let board = Board::new_position(pos)?;
     let mut explorer = Explorer::new();
     let (mv, eval) = explorer.solve(&board);
+
     println!("Best Move: {} (Eval {})", mv + 1, eval);
     Ok(())
 }
@@ -110,6 +111,11 @@ fn play_position(position: &str) -> Result<()> {
 
         println!("Waiting for engine to generate move...");
         let (mv, eval) = explorer.solve(&board);
+
+        if mv == EMPTY_MOVE { // used when the given game is already over.
+            break;
+        }
+
         let result = board.add(mv);
         if let Err(s) = result {
             panic!("Engine corrupted. Tried to put in column {}. Aborting. {:?}", mv + 1, s);

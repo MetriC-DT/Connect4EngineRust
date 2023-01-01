@@ -46,6 +46,11 @@ impl Explorer {
 
         let eval = self.evaluate(board);
 
+        // if the game is already over, then we can't play anything.
+        if board.is_game_over() {
+            return (EMPTY_MOVE, eval);
+        }
+
         if let Some(entry) = self.transpositiontable.get_non_upper_entry(board) {
             return (entry.get_mv(), eval);
         }
