@@ -53,7 +53,7 @@ fn eval_position(pos: &str) -> Result<()> {
     let board = Board::new_position(pos)?;
     let mut explorer = Explorer::new();
     let (mv, eval) = explorer.solve(&board);
-    println!("{:?}", (mv + 1, eval));
+    println!("Best Move: {} (Eval {})", mv + 1, eval);
     Ok(())
 }
 
