@@ -64,7 +64,6 @@ impl Explorer {
             return (col, eval);
         }
 
-
         panic!("Node not found in transposition table.")
     }
 

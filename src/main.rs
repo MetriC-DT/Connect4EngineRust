@@ -106,7 +106,7 @@ fn play_position(position: &str) -> Result<()> {
     let mut explorer = Explorer::new();
 
     loop {
-        println!("{}\n{}", board, pos_str);
+        println!("{}\n{}\n--------------------------------", board, pos_str);
 
         println!("Waiting for engine to generate move...");
         let (mv, eval) = explorer.solve(&board);
@@ -124,7 +124,7 @@ fn play_position(position: &str) -> Result<()> {
             break;
         }
 
-        println!("{}\n{}", board, pos_str);
+        println!("{}\n{}\n--------------------------------", board, pos_str);
         // get user input.
         loop {
             let mut buf = String::new();
@@ -178,7 +178,7 @@ fn play_position(position: &str) -> Result<()> {
         }
     }
 
-    println!("{}\n{}", board, pos_str);
+    println!("{}\n{}\n--------------------------------", board, pos_str);
     println!("Game Over!");
     Ok(())
 }
