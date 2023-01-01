@@ -1,5 +1,5 @@
 use crate::scoredmoves::ScoredMoves;
-use crate::transpositiontable::{TranspositionTable, FLAG_UPPER, FLAG_LOWER};
+use crate::transpositiontable::{TranspositionTable, FLAG_UPPER, FLAG_LOWER, FLAG_EXACT};
 use crate::moves::{EMPTY_MOVE, Moves};
 use crate::board::{SIZE, Board};
 
@@ -87,34 +87,33 @@ impl Explorer {
         let start_min: i8 = -Explorer::win_eval(board.moves_played());
         let start_min: i8 = i8::max(start_min, -Explorer::win_eval(8)); // fastest loss on 8 moves.
 
+        // -1 and +1 on the ends in order for us to be able to obtain an exact move.
         let (mut min, mut max) = (start_min - 1, start_max + 1);
-        let mut eval = 0;
-
-        let board = board.clone();
+        // let mut eval = 0;
 
         // we will use the null window to check if our score is higher or lower. We will basically
         // use a binary search to home in on the correct node within the correct narrower window.
         // TODO - this should be subject to change, as we want to scan shallower depths before
         // deeper depths, and shallower ones are closer to either `min` or `max`.
-        while min < max {
-            let mut med = min + (max - min)/2;
-            if med <= 0 && min/2 < med {
-                med = min/2;
-            }
-            else if med >= 0 && max/2 > med {
-                med = max/2;
-            }
+        // while min < max {
+        //     let mut med = min + (max - min)/2;
+        //     if med <= 0 && min/2 < med {
+        //         med = min/2;
+        //     }
+        //     else if med >= 0 && max/2 > med {
+        //         med = max/2;
+        //     }
 
-            eval = self.search(&board, med, med + 1); // the null window search
-            if eval <= med {
-                max = eval;
-            }
-            else {
-                min = eval;
-            }
-        }
+        //     eval = self.search(&board, med, med + 1); // the null window search
+        //     if eval <= med {
+        //         max = eval;
+        //     }
+        //     else {
+        //         min = eval;
+        //     }
+        // }
 
-        eval
+        self.search(board, min, max)
     }
 
     /// Searches for the most optimal evaluation after loading in a board.
@@ -140,9 +139,16 @@ impl Explorer {
         let winning_moves = board.player_win_moves(possible);
         let moves_played = board.moves_played();
 
+        // the unique key to represent the board in order to insert or search transposition table.
+        let board_key = board.get_unique_position_key();
+        let depth = moves_played as u8;
+
         // quick endgame lookahead. checks if can win in 1 move.
         if winning_moves != 0 {
-            return Explorer::win_eval(moves_played + 1);
+            let win_eval = Explorer::win_eval(moves_played + 1);
+            let mv = Board::pos_to_col(winning_moves);
+            self.transpositiontable.insert_with_key(board_key, win_eval, FLAG_EXACT, depth, mv);
+            return win_eval;
         }
 
         // if we had lost, it would have been on the turn after the next.
@@ -166,11 +172,11 @@ impl Explorer {
         // if there are more than 1 move that enables opponent to win, we are toast.
         let essential_moves = board.opp_win_moves(possible);
         if essential_moves != 0 && !Board::at_most_one_bit_set(essential_moves) {
-            return -Explorer::win_eval(moves_played + 2);
+            let lose_eval = -Explorer::win_eval(moves_played + 2);
+            let mv = Board::pos_to_col(essential_moves);
+            self.transpositiontable.insert_with_key(board_key, lose_eval, FLAG_EXACT, depth, mv);
+            return lose_eval;
         }
-
-        // the unique key to represent the board in order to insert or search transposition table.
-        let board_key = board.get_unique_position_key();
 
         // look up evaluation in transposition table
         if let Some(entry) = self.transpositiontable.get_entry_with_key(board_key) {
@@ -188,7 +194,6 @@ impl Explorer {
         // for use in principal variation search.
         let mut first = true;
         let mut final_eval = -MAX_SCORE;
-        let depth = moves_played as u8;
 
         // We only want to search the essential moves, if there are more than 0.
         let next_moves = if essential_moves != 0 {

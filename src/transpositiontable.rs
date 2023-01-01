@@ -43,6 +43,7 @@ pub struct Entry {
 pub type Flag = u8;
 pub const FLAG_UPPER: Flag = 0;
 pub const FLAG_LOWER: Flag = 1;
+pub const FLAG_EXACT: Flag = 2;
 
 impl Entry {
     pub fn new(board_key: u64, eval: i8, flag: Flag, depth: u8, mv: u8) -> Self {
