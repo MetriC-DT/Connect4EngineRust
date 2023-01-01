@@ -336,6 +336,7 @@ impl Board {
     }
 
     /// obtains the number of moves made.
+    /// The only reason this is fast is if we compile with the POPCNT instruction.
     pub fn moves_played(&self) -> u32 {
         self.total_board.count_ones()
     }
