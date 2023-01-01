@@ -6,7 +6,7 @@ use crate::board::{SIZE, Board};
 pub const MAX_SCORE: i8 = 1 + SIZE as i8;
 pub const TIE_SCORE: i8 = 0;
 pub const PV_SIZE: usize = SIZE as usize;
-const REFUTATION_SCORE: i8 = 10;
+const REFUTATION_SCORE: i8 = 16;
 
 // Evaluation table for number of possible 4-in-a-rows
 /*
