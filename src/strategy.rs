@@ -122,6 +122,8 @@ impl Explorer {
         let (mut min, mut max) = (start_min - 1, start_max + 1);
         let mut eval = 0;
 
+        let board = self.get_board().clone();
+
         // we will use the null window to check if our score is higher or lower. We will basically
         // use a binary search to home in on the correct node within the correct narrower window.
         // TODO - this should be subject to change, as we want to scan shallower depths before
@@ -135,7 +137,7 @@ impl Explorer {
                 med = max/2;
             }
 
-            eval = self.search(med, med + 1); // the null window search
+            eval = self.search(&board, med, med + 1); // the null window search
             if eval <= med {
                 max = eval;
             }
@@ -153,37 +155,39 @@ impl Explorer {
     /// * negamax (principal variation search)
     /// * transposition table
     fn search(&mut self,
+              board: &Board,
               mut a: i8,
               mut b: i8) -> i8 {
 
         // increment nodes searched.
         self.nodes_explored += 1;
 
-        if self.board.is_filled() { // the position is drawn.
+        if board.is_filled() { // the position is drawn.
             // we do not need to check if move is win, because winning is already checked before
             // the recursive call (via endgame lookahead).
             return TIE_SCORE;
         }
 
-        let possible = self.board.possible_moves();
-        let winning_moves = self.board.player_win_moves(possible);
+        let possible = board.possible_moves();
+        let winning_moves = board.player_win_moves(possible);
+        let moves_played = board.moves_played();
 
         // quick endgame lookahead. checks if can win in 1 move.
         if winning_moves != 0 {
-            return Explorer::win_eval(self.moves_played + 1);
+            return Explorer::win_eval(moves_played + 1);
         }
 
         // if we had lost, it would have been on the turn after the next.
         // if a is less than the minimum possible score we can achieve, we can raise the bounds.
         // TODO - subtract moves by 1 in order to be able to obtain an exact node.
-        let min_eval = -Explorer::win_eval(self.moves_played + 2);
+        let min_eval = -Explorer::win_eval(moves_played + 2);
         a = i8::max(a, min_eval);
 
         // if we had won, it would have been on the next turn.
         // if b is greater than the maximum possible score we can achieve, we can lower the bounds.
         // This gives us additional chances to see if we can prune.
         // TODO - subtract moves by 1 in order to be able to obtain an exact node.
-        let max_eval = Explorer::win_eval(self.moves_played + 3);
+        let max_eval = Explorer::win_eval(moves_played + 3);
         b = i8::min(b, max_eval);
 
         // prune, as this is a cut node.
@@ -192,13 +196,13 @@ impl Explorer {
         }
 
         // if there are more than 1 move that enables opponent to win, we are toast.
-        let essential_moves = self.board.opp_win_moves(possible);
+        let essential_moves = board.opp_win_moves(possible);
         if essential_moves != 0 && !Board::at_most_one_bit_set(essential_moves) {
-            return -Explorer::win_eval(self.moves_played + 2);
+            return -Explorer::win_eval(moves_played + 2);
         }
 
         // the unique key to represent the board in order to insert or search transposition table.
-        let board_key = self.board.get_unique_position_key();
+        let board_key = board.get_unique_position_key();
 
         // look up evaluation in transposition table
         if let Some(entry) = self.transpositiontable.get_entry_with_key(board_key) {
@@ -226,30 +230,31 @@ impl Explorer {
         } else {
             let mut moves = ScoredMoves::new();
             for (m, c) in Moves::new(possible) {
-                moves.add(m, c, self.board.move_score(m));
+                moves.add(m, c, board.move_score(m));
             }
             moves
         };
 
         // calculate evaluation.
+        let mut boardcpy = *board;
         for (m, c) in next_moves {
-            self.play(m);
+            boardcpy.play(m);
 
             let mut val;
             if first { // if first child, then assume it is the best move. Scan entire window.
-                val = -self.search(-b, -a);
+                val = -self.search(&boardcpy, -b, -a);
                 first = false;
             }
             else { // search with a null window.
-                val = -self.search(-a - 1, -a);
+                val = -self.search(&boardcpy, -a - 1, -a);
 
                 if a < val && val < b { // if failed high, do a full re-search.
-                    val = -self.search(-b, -val);
+                    val = -self.search(&boardcpy, -b, -val);
                 }
             }
 
             // revert back to original position
-            self.revert(m);
+            boardcpy = *board;
 
             // fail-high beta cutoff occurred. This is a CUT node.
             if val >= b {
