@@ -47,7 +47,24 @@ impl Explorer {
             return (entry.get_mv(), eval);
         }
 
-        // TODO - got here. Must do a re-search.
+        // TODO - got here. Position probably is winning by next move, or losing by next opponent
+        // move since we don't store those values in the transposition table.
+        let possible = board.possible_moves();
+
+        // winning case
+        let winning_moves = board.player_win_moves(possible);
+        if winning_moves != 0 {
+            let col = Board::pos_to_col(winning_moves);
+            return (col, eval);
+        }
+        // losing case
+        let losing_moves = board.opp_win_moves(possible);
+        if losing_moves != 0 {
+            let col = Board::pos_to_col(losing_moves);
+            return (col, eval);
+        }
+
+
         panic!("Node not found in transposition table.")
     }
 
@@ -68,15 +85,16 @@ impl Explorer {
         // we can use these bounds as our (a, b) window.
 
         // the maximum score we can get is when we win directly on our next move.
-        let start_max: i8 = Explorer::win_eval(board.moves_played());
+        let start_max: i8 = Explorer::win_eval(board.moves_played() + 1);
         let start_max: i8 = i8::min(start_max, Explorer::win_eval(7)); // fastest win on 7 moves.
 
         // the minimum score we can get is when we lose on the opponent's move (2 more moves).
-        let start_min: i8 = -Explorer::win_eval(board.moves_played());
+        let start_min: i8 = -Explorer::win_eval(board.moves_played() + 2);
         let start_min: i8 = i8::max(start_min, -Explorer::win_eval(8)); // fastest loss on 8 moves.
 
         // -1 and +1 on the ends in order for us to be able to obtain an exact move.
-        let (mut min, mut max) = (start_min - 1, start_max + 1);
+        let (min, max) = (start_min - 1, start_max + 1);
+
         // let mut eval = 0;
 
         // we will use the null window to check if our score is higher or lower. We will basically
@@ -134,8 +152,6 @@ impl Explorer {
         // quick endgame lookahead. checks if can win in 1 move.
         if winning_moves != 0 {
             let win_eval = Explorer::win_eval(moves_played + 1);
-            let mv = Board::pos_to_col(winning_moves);
-            self.transpositiontable.insert_with_key(board_key, win_eval, FLAG_EXACT, depth, mv);
             return win_eval;
         }
 
@@ -161,8 +177,6 @@ impl Explorer {
         let essential_moves = board.opp_win_moves(possible);
         if essential_moves != 0 && !Board::at_most_one_bit_set(essential_moves) {
             let lose_eval = -Explorer::win_eval(moves_played + 2);
-            let mv = Board::pos_to_col(essential_moves);
-            self.transpositiontable.insert_with_key(board_key, lose_eval, FLAG_EXACT, depth, mv);
             return lose_eval;
         }
 
@@ -236,13 +250,13 @@ impl Explorer {
         }
 
         // insert into transposition table.
-        if a > a_orig { // this is an exact node since a < val < b.
-            self.transpositiontable.insert_with_key(board_key, final_eval, FLAG_EXACT, depth, final_mv);
-        }
-        else { // fail-low occurred.
-            self.transpositiontable.insert_with_key(board_key, final_eval, FLAG_UPPER, depth, EMPTY_MOVE);
-        }
+        let flag = if a > a_orig { // exact node (a < val < b)
+            FLAG_EXACT
+        } else { // fail-low occurred.
+            FLAG_UPPER
+        };
 
+        self.transpositiontable.insert_with_key(board_key, final_eval, flag, depth, final_mv);
         final_eval
     }
 

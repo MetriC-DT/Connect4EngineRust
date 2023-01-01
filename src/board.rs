@@ -190,6 +190,8 @@ impl Board {
     }
 
     /// converts the bit position to play into a column.
+    /// If given a possible-type position, it obtains any one of possible columns from the possible
+    /// moves. Undefined behavior if supplied position does not have any possible moves.
     pub fn pos_to_col(p: Position) -> u8 {
         p.trailing_zeros() as u8 / COUNTS_PER_COL
     }
