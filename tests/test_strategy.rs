@@ -77,26 +77,26 @@ fn test_one_move_win() {
 /// runs the game, returning (num_turns, resulting board)
 fn run_game(line: &str) -> (usize, Board) {
     let mut board = Board::new_position(line).unwrap();
-    let mut explorer = Explorer::with_board(board.clone());
+    let mut explorer = Explorer::new();
+
     let mut turncount = 0;
     println!("{}", board);
     let mut curr_line = line.to_string();
     let mut evals: Vec<i8> = Vec::new();
 
-    while !explorer.get_board().is_game_over() {
-        let (col, val) = explorer.solve();
+    while !board.is_game_over() {
+        let (col, val) = explorer.solve(&board);
 
         evals.push(val);
         assert!(board.add(col).is_ok());
-        explorer.change_board(&board);
         curr_line.push_str(&format!("{}", col + 1));
         println!("{}", curr_line);
-        println!("Move {} Eval {}\n{}", col, val, explorer.get_board());
+        println!("Move {} Eval {}\n{}", col, val, board);
         turncount += 1;
     }
 
     // make sure all the evaluations are the same (just alternating signs).
     assert!(evals.iter().all(|&x| {x.abs() == evals[0].abs()}));
 
-    (turncount, *explorer.get_board())
+    (turncount, board)
 }

@@ -51,8 +51,8 @@ fn main() -> Result<()> {
 /// prints the evaluation and optimal move for a given position.
 fn eval_position(pos: &str) -> Result<()> {
     let board = Board::new_position(pos)?;
-    let mut explorer = Explorer::with_board(board);
-    let (mv, eval) = explorer.solve();
+    let mut explorer = Explorer::new();
+    let (mv, eval) = explorer.solve(&board);
     println!("{:?}", (mv + 1, eval));
     Ok(())
 }
@@ -80,8 +80,7 @@ fn eval_from_stdin() -> Result<()> {
 
         // new position has been inputted. We can solve.
         let board = b.unwrap();
-        explorer.change_board(&board);
-        let (mv, eval) = explorer.solve();
+        let (mv, eval) = explorer.solve(&board);
 
         // we want to output the columns in [1-7].
         if mv == EMPTY_MOVE {
@@ -109,9 +108,8 @@ fn play_position(position: &str) -> Result<()> {
     loop {
         println!("{}\n{}", board, pos_str);
 
-        explorer.change_board(&board);
         println!("Waiting for engine to generate move...");
-        let (mv, eval) = explorer.solve();
+        let (mv, eval) = explorer.solve(&board);
         let result = board.add(mv);
         if let Err(s) = result {
             panic!("Engine corrupted. Tried to put in column {}. Aborting. {:?}", mv + 1, s);
@@ -200,11 +198,11 @@ fn test_files(filename: &str) -> Result<()> {
         let linestr = line?;
         let linestr = linestr.split(" ").next().unwrap();
         count += 1;
-        explorer.change_board(&Board::new_position(linestr)?);
+        let next_board = Board::new_position(linestr)?;
 
         // time the solve
         let start_time = Instant::now();
-        let eval = explorer.evaluate();
+        let eval = explorer.evaluate(&next_board);
         let delta = start_time.elapsed().as_micros();
         totaltime += delta;
 

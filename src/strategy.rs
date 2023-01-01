@@ -1,7 +1,7 @@
 use crate::scoredmoves::ScoredMoves;
 use crate::transpositiontable::{TranspositionTable, FLAG_UPPER, FLAG_LOWER};
 use crate::moves::{EMPTY_MOVE, Moves};
-use crate::board::{SIZE, Board, Position};
+use crate::board::{SIZE, Board};
 
 pub const MAX_SCORE: i8 = 1 + SIZE as i8;
 pub const TIE_SCORE: i8 = 0;
@@ -21,12 +21,6 @@ pub const EVALTABLE: [i16; SIZE as usize] = [
 
 #[derive(Debug)]
 pub struct Explorer {
-    /// position to solve.
-    board: Board,
-
-    /// moves that have been made on the board.
-    moves_played: u32,
-
     /// number of nodes this explorer has searched.
     nodes_explored: usize,
 
@@ -36,69 +30,43 @@ pub struct Explorer {
 
 impl Explorer {
     pub fn new() -> Self {
-        let board = Board::new();
         let nodes_explored = 0;
         let transpositiontable = TranspositionTable::new();
-        let moves_played = board.moves_played();
-        Self { board, moves_played, nodes_explored, transpositiontable }
-    }
-
-    pub fn with_board(board: Board) -> Self {
-        let nodes_explored = 0;
-        let transpositiontable = TranspositionTable::new();
-        let moves_played = board.moves_played();
-        Self { board, moves_played, nodes_explored, transpositiontable }
-    }
-
-    pub fn change_board(&mut self, board: &Board) {
-        self.board = *board;
-        self.moves_played = board.moves_played();
-    }
-
-    pub fn get_board(&self) -> &Board {
-        &self.board
-    }
-
-    fn play(&mut self, mv: Position) {
-        self.board.play(mv);
-        self.moves_played += 1;
-    }
-
-    fn revert(&mut self, mv: Position) {
-        self.board.revert(mv);
-        self.moves_played -= 1;
+        Self { nodes_explored, transpositiontable }
     }
 
     /// returns the optimal move and evaluation for this explorer's current position.
-    pub fn solve(&mut self) -> (u8, i8) {
+    pub fn solve(&mut self, board: &Board) -> (u8, i8) {
         // TODO - check if move is in openings database.
+        let mut b = board.clone();
+        let moves_played = b.moves_played();
 
         // Checks if the game is already over.
-        if self.get_board().has_winner() {
+        if b.has_winner() {
             // if board has winner already, then assume the current player is loser.
             // Therefore, the score would be negative.
-            return (EMPTY_MOVE, -Explorer::win_eval(self.moves_played));
+            return (EMPTY_MOVE, -Explorer::win_eval(moves_played));
         }
-        else if self.get_board().is_filled() {
+        else if b.is_filled() {
             return (EMPTY_MOVE, TIE_SCORE);
         }
 
         // needs to evaluate every of the positions that could result from the current.
-        let possible = self.get_board().possible_moves();
+        let possible = b.possible_moves();
         let mut pairs = Vec::new();
 
         for (mv, _c) in Moves::new(possible) {
-            self.play(mv);
+            b.play(mv);
             let col = Board::pos_to_col(mv);
-            if self.board.has_winner() {
-                let eval = Explorer::win_eval(self.moves_played);
-                self.revert(mv);
+            if b.has_winner() {
+                let eval = Explorer::win_eval(b.moves_played());
                 return (col, eval);
             } else {
-                let eval = -self.evaluate();
+                let eval = -self.evaluate(&b);
                 pairs.push((mv, eval));
             }
-            self.revert(mv);
+
+            b.revert(mv);
         }
 
         let (mv, eval) = pairs.into_iter().max_by_key(|&(_m, v)| { v }).unwrap();
@@ -106,23 +74,23 @@ impl Explorer {
     }
 
     /// evaluates the position, but doesn't return a corresponding move.
-    pub fn evaluate(&mut self) -> i8 {
+    pub fn evaluate(&mut self, board: &Board) -> i8 {
         // game is guaranteed to not be over. Therefore, we need to search.
         // Since our score is calculated with best_score = MAX_SCORE - moves_played,
         // we can use these bounds as our (a, b) window.
 
         // the maximum score we can get is when we win directly on our next move.
-        let start_max: i8 = Explorer::win_eval(self.moves_played);
+        let start_max: i8 = Explorer::win_eval(board.moves_played());
         let start_max: i8 = i8::min(start_max, Explorer::win_eval(7)); // fastest win on 7 moves.
 
         // the minimum score we can get is when we lose on the opponent's move (2 more moves).
-        let start_min: i8 = -Explorer::win_eval(self.moves_played);
+        let start_min: i8 = -Explorer::win_eval(board.moves_played());
         let start_min: i8 = i8::max(start_min, -Explorer::win_eval(8)); // fastest loss on 8 moves.
 
         let (mut min, mut max) = (start_min - 1, start_max + 1);
         let mut eval = 0;
 
-        let board = self.get_board().clone();
+        let board = board.clone();
 
         // we will use the null window to check if our score is higher or lower. We will basically
         // use a binary search to home in on the correct node within the correct narrower window.
@@ -220,7 +188,7 @@ impl Explorer {
         // for use in principal variation search.
         let mut first = true;
         let mut final_eval = -MAX_SCORE;
-        let depth = self.moves_played as u8;
+        let depth = moves_played as u8;
 
         // We only want to search the essential moves, if there are more than 0.
         let next_moves = if essential_moves != 0 {

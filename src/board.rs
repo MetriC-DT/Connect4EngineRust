@@ -336,8 +336,6 @@ impl Board {
     }
 
     /// obtains the number of moves made.
-    /// Should not continue to call in heavy calculations. Instead, it is recommended to add and
-    /// subtract from a local variable as necessary whenever a move gets played.
     pub fn moves_played(&self) -> u32 {
         self.total_board.count_ones()
     }
