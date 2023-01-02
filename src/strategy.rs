@@ -109,10 +109,6 @@ impl Explorer {
         // nodes scanned. Additionally, windows near the extremes of range (min, max) are also at
         // comparatively lower depths relative to windows nearer to the center, due to the way our
         // winning scores are assigned (e.g. MAX_SCORE - moves_played).
-        //
-        // The strategy used to scan for moves would start from the lowest possible window, go scan
-        // the highest window (using larger), and then if those did not find any, then scan middle,
-        // using updated bounds.
 
         if board.moves_played() <= 20 { // only use the aspiration window if depth is past certain threshold.
             let (mut g_min, mut g_max) = (start_min, start_max);

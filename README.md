@@ -10,7 +10,7 @@ A strong solver for Connect 4 built with rust. Inspiration from Pascal Pons' [Co
     - [x]  position heuristic
     - [x] Refutation Move (with Transposition Table)
 - [x] Transposition Table (Two-Tiered)
-- [ ] Gradual Widening Aspiration Window
+- [x] Gradual Widening Aspiration Window
 - [ ] Saves Principal Variation
 - [ ] NNUE
 - [ ] Multithreaded search
