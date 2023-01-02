@@ -114,10 +114,9 @@ impl Explorer {
         // the highest window (using larger), and then if those did not find any, then scan middle,
         // using updated bounds.
 
-        let diff = start_max - start_min;
-        if diff >= 25 {
+        if board.moves_played() <= 20 { // only use the aspiration window if depth is past certain threshold.
             let (mut g_min, mut g_max) = (start_min, start_max);
-            let low_sz = 10;
+            let low_sz = 6;
             let high_sz = 6;
             let (mut min, mut max) = (g_min, g_min + low_sz);
 
