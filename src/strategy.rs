@@ -115,10 +115,11 @@ impl Explorer {
         // using updated bounds.
 
         // -1 and +1 on the bounds in order for us to be able to obtain an exact move.
-        if start_max - start_min >= 14 {
-            let sz = 5;
+        if start_max - start_min >= 16 {
+            let low_sz = 6;
+            let high_sz = 6;
             let (mut g_min, mut g_max) = (start_min, start_max);
-            let (mut min, mut max) = (g_min, g_min + sz);
+            let (mut min, mut max) = (g_min, g_min + low_sz);
             let mut low = true;
 
             loop {
@@ -134,14 +135,14 @@ impl Explorer {
                         panic!("Should not fail low with a low scan");
                     }
                     g_max = asp_min;
-                    max = g_min + sz;
+                    max = g_min + low_sz;
                 }
                 else if eval >= asp_max { // failed high.
                     if !low {
                         panic!("Should not fail high with a high scan");
                     }
                     g_min = asp_max;
-                    min = g_max - sz;
+                    min = g_max - high_sz;
                 }
 
                 // switch from low scan to high scan
