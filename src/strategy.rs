@@ -115,38 +115,30 @@ impl Explorer {
         // using updated bounds.
 
         // -1 and +1 on the bounds in order for us to be able to obtain an exact move.
-        if start_max - start_min >= 16 {
+        if start_max - start_min >= 20 {
             let low_sz = 6;
             let high_sz = 6;
             let (mut g_min, mut g_max) = (start_min, start_max);
             let (mut min, mut max) = (g_min, g_min + low_sz);
-            let mut low = true;
 
             loop {
-                let asp_min = if low { g_min - 1 } else { min - 1 };
-                let asp_max = if low { max + 1 } else { g_max + 1 };
+                let asp_min = i8::max(min - 1, g_min - 1);
+                let asp_max = i8::min(max + 1, g_max + 1);
                 let eval = self.search(board, asp_min, asp_max);
 
                 if asp_min < eval && eval < asp_max {
                     return eval;
                 }
                 else if eval <= asp_min { // failed low.
-                    if low {
-                        panic!("Should not fail low with a low scan");
-                    }
                     g_max = asp_min;
                     max = g_min + low_sz;
+                    min = g_min;
                 }
                 else if eval >= asp_max { // failed high.
-                    if !low {
-                        panic!("Should not fail high with a high scan");
-                    }
                     g_min = asp_max;
                     min = g_max - high_sz;
+                    max = g_max;
                 }
-
-                // switch from low scan to high scan
-                low = !low;
             }
         }
         else {
