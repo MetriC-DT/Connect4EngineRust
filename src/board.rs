@@ -228,10 +228,24 @@ impl Board {
     pub fn opp_win_moves(&self, possible: Position) -> (Position, Position) {
         // the opponent's board.
         let opp = self.board;
-        let not_taken = PLAYABLE_REGION ^ self.total_board;
-        let future_opp_wins = Board::winning_moves(opp, not_taken);
+        let future_opp_wins = Board::winning_moves(opp, PLAYABLE_REGION);
         let immediate_opp_wins = future_opp_wins & possible;
         return (immediate_opp_wins, future_opp_wins);
+    }
+
+    pub fn non_losing_moves(&self, possible: Position) -> Position {
+        let (essential_moves, avoid_moves) = self.opp_win_moves(possible);
+        let avoid_moves = avoid_moves >> 1; // position below opponent's win.
+        if essential_moves != 0 {
+            if Board::at_most_one_bit_set(essential_moves) {
+                return essential_moves & !avoid_moves;
+            } else {
+                return 0; // there are no non-losing moves.
+            }
+        }
+        else { // don't play on a column that gives opponent win.
+            return possible & !avoid_moves;
+        }
     }
 
     /// returns the moves that the current player can use to win.
@@ -244,12 +258,7 @@ impl Board {
     /// ordering. mv is the move played.
     ///
     /// mv must be a valid move in possible. Undefined behavior if not.
-    pub fn move_score(&self, mv: Position, possible_lose: Position) -> i8 {
-        let next_above = mv << 1;
-        if possible_lose & next_above == next_above { // we should not play into opponent's win.
-            return -1;
-        }
-
+    pub fn move_score(&self, mv: Position) -> i8 {
         // counts the number of threats we have, if we played mv.
         let player = self.board ^ self.total_board;
         let not_taken = PLAYABLE_REGION ^ self.total_board;

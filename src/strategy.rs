@@ -115,7 +115,7 @@ impl Explorer {
         // comparatively lower depths relative to windows nearer to the center, due to the way our
         // winning scores are assigned (e.g. MAX_SCORE - moves_played).
 
-        if board.moves_played() <= 20 { // only use the aspiration window if depth is past certain threshold.
+        if board.moves_played() <= 15 { // only use the aspiration window if depth is past certain threshold.
             let (mut g_min, mut g_max) = (start_min, start_max);
             let low_sz = 6;
             let high_sz = 6;
@@ -197,9 +197,8 @@ impl Explorer {
             return a;
         }
 
-        // if there are more than 1 move that enables opponent to win, we are toast.
-        let (essential_moves, future_pos_loss) = board.opp_win_moves(possible);
-        if essential_moves != 0 && !Board::at_most_one_bit_set(essential_moves) {
+        let non_losing_moves = board.non_losing_moves(possible);
+        if non_losing_moves == 0 { // all moves will lose.
             let lose_eval = -Explorer::win_eval(moves_played + 2);
             return lose_eval;
         }
@@ -227,22 +226,14 @@ impl Explorer {
             }
         }
 
-        // We only want to search the essential moves, if there are more than 0.
-        let next_moves = if essential_moves != 0 {
-            let column = Board::pos_to_col(essential_moves);
-            ScoredMoves::new_with(essential_moves, column, i8::MAX)
-
-        } else {
-            let mut moves = ScoredMoves::new();
-            for (m, c) in Moves::new(possible) {
-                if refutation == c { // prioritize searching refutation move first.
-                    moves.add(m, c, REFUTATION_SCORE);
-                } else {
-                    moves.add(m, c, board.move_score(m, future_pos_loss));
-                }
+        let mut next_moves = ScoredMoves::new();
+        for (m, c) in Moves::new(non_losing_moves) {
+            if refutation == c { // prioritize searching refutation move first.
+                next_moves.add(m, c, REFUTATION_SCORE);
+            } else {
+                next_moves.add(m, c, board.move_score(m));
             }
-            moves
-        };
+        }
 
         // for use in principal variation search.
         let mut final_eval = -MAX_SCORE;

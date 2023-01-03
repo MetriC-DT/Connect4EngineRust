@@ -86,7 +86,7 @@ fn test_essential_1() {
     let line = "444444326552322556";
     let b = Board::new_position(line).unwrap();
     let possible = b.possible_moves();
-    let essential = b.opp_win_moves(possible);
+    let (essential, _) = b.opp_win_moves(possible);
     assert_ne!(essential, 0);
 
     // should be in column 6.
