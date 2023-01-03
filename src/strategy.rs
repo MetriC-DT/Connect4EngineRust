@@ -3,7 +3,7 @@ use crate::transpositiontable::{TranspositionTable, FLAG_UPPER, FLAG_LOWER, FLAG
 use crate::moves::{EMPTY_MOVE, Moves};
 use crate::board::{SIZE, Board};
 
-pub const MAX_SCORE: i8 = 1 + SIZE as i8;
+pub const MAX_SCORE: i8 = 2 + SIZE as i8;
 pub const TIE_SCORE: i8 = 0;
 pub const PV_SIZE: usize = SIZE as usize;
 const REFUTATION_SCORE: i8 = 16;
@@ -217,12 +217,12 @@ impl Explorer {
             return lose_eval;
         }
 
-        // if we had lost, it would have been on the turn after the next.
+        // if we had lost, it would have been on 4 turns later (us, opp, us, opp)
         // if a is less than the minimum possible score we can achieve, we can raise the bounds.
-        let min_eval = -Explorer::win_eval(moves_played + 2);
+        let min_eval = -Explorer::win_eval(moves_played + 3);
         a = i8::max(a, min_eval);
 
-        // if we had won, it would have been on the next turn.
+        // if we had won, it would have been on 3 turns later (us, opp, us).
         // if b is greater than the maximum possible score we can achieve, we can lower the bounds.
         // This gives us additional chances to see if we can prune.
         let max_eval = Explorer::win_eval(moves_played + 2);
