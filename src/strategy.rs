@@ -51,7 +51,7 @@ impl Explorer {
             return (EMPTY_MOVE, eval);
         }
 
-        if let Some(entry) = self.transpositiontable.get_non_upper_entry(board) {
+        if let Some(entry) = self.transpositiontable.get_exact_entry(board) {
             return (entry.get_mv(), eval);
         }
 
@@ -69,6 +69,11 @@ impl Explorer {
         let losing_moves = board.opp_win_moves(possible);
         if losing_moves != 0 {
             let col = Board::pos_to_col(losing_moves);
+            return (col, eval);
+        }
+        // draw case
+        if possible != 0 {
+            let col = Board::pos_to_col(possible);
             return (col, eval);
         }
 

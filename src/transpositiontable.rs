@@ -133,7 +133,7 @@ impl TranspositionTable {
         self.get_entry_with_key(key)
     }
 
-    pub fn get_non_upper_entry(&self, board: &Board) -> Option<&Entry> {
+    pub fn get_exact_entry(&self, board: &Board) -> Option<&Entry> {
         let key = board.get_unique_position_key();
         let new_key = (key & STORED_KEY_BIT_MASK) as u32;
         let loc = TranspositionTable::location(key);
@@ -142,10 +142,6 @@ impl TranspositionTable {
         if entry.0.get_key() == new_key && entry.0.get_flag() == FLAG_EXACT {
             return Some(&entry.0);
         } else if entry.1.get_key() == new_key && entry.1.get_flag() == FLAG_EXACT {
-            return Some(&entry.1);
-        } else if entry.0.get_key() == new_key && entry.0.get_flag() == FLAG_LOWER {
-            return Some(&entry.0);
-        } else if entry.1.get_key() == new_key && entry.1.get_flag() == FLAG_LOWER {
             return Some(&entry.1);
         } else {
             return None;
