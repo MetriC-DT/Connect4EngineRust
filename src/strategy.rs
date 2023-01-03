@@ -181,6 +181,13 @@ impl Explorer {
             return win_eval;
         }
 
+        // looks for possible moves that don't lose the game immediately.
+        let non_losing_moves = board.non_losing_moves(possible);
+        if non_losing_moves == 0 { // all moves will lose.
+            let lose_eval = -Explorer::win_eval(moves_played + 2);
+            return lose_eval;
+        }
+
         // if we had lost, it would have been on the turn after the next.
         // if a is less than the minimum possible score we can achieve, we can raise the bounds.
         let min_eval = -Explorer::win_eval(moves_played + 1);
@@ -197,15 +204,8 @@ impl Explorer {
             return a;
         }
 
-        let non_losing_moves = board.non_losing_moves(possible);
-        if non_losing_moves == 0 { // all moves will lose.
-            let lose_eval = -Explorer::win_eval(moves_played + 2);
-            return lose_eval;
-        }
-
-        // look up evaluation in transposition table
+        // look up evaluation in transposition table. Updates the best refutation.
         let mut refutation = EMPTY_MOVE;
-
         if let Some(entry) = self.transpositiontable.get_entry_with_key(board_key) {
             let flag = entry.get_flag();
             let val = entry.get_eval();
@@ -226,11 +226,13 @@ impl Explorer {
             }
         }
 
+        // generates ordered moves to search.
         let mut next_moves = ScoredMoves::new();
         for (m, c) in Moves::new(non_losing_moves) {
             if refutation == c { // prioritize searching refutation move first.
                 next_moves.add(m, c, REFUTATION_SCORE);
-            } else {
+            }
+            else {
                 next_moves.add(m, c, board.move_score(m));
             }
         }
