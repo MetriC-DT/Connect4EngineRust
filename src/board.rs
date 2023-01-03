@@ -225,27 +225,35 @@ impl Board {
     /// returns the moves that opponent needs to win. These moves are to be sorted to the beginning
     /// of move ordering, when creating new `Moves`. These moves are necessary to play in order to
     /// prevent the opponent from winning on their turn.
-    pub fn opp_win_moves(&self, possible: Position) -> Position {
+    pub fn opp_win_moves(&self, possible: Position) -> (Position, Position) {
         // the opponent's board.
         let opp = self.board;
-        Board::winning_moves(opp, possible)
-    }
-
-    /// calculates the score of a position if a player decides to play `mv`. This is used in move
-    /// ordering. mv is the move played.
-    ///
-    /// mv must be a valid move in possible. Undefined behavior if not.
-    pub fn move_score(&self, mv: Position) -> i8 {
-        let player = self.board ^ self.total_board;
         let not_taken = PLAYABLE_REGION ^ self.total_board;
-        let winning_position = Board::winning_moves(player | mv, not_taken);
-        return winning_position.count_ones() as i8;
+        let future_opp_wins = Board::winning_moves(opp, not_taken);
+        let immediate_opp_wins = future_opp_wins & possible;
+        return (immediate_opp_wins, future_opp_wins);
     }
 
     /// returns the moves that the current player can use to win.
     pub fn player_win_moves(&self, possible: Position) -> Position {
         let player = self.board ^ self.total_board;
         Board::winning_moves(player, possible)
+    }
+
+    /// calculates the score of a position if a player decides to play `mv`. This is used in move
+    /// ordering. mv is the move played.
+    ///
+    /// mv must be a valid move in possible. Undefined behavior if not.
+    pub fn move_score(&self, mv: Position, possible_lose: Position) -> i8 {
+        let next_above = mv << 1;
+        if possible_lose & next_above == next_above { // we should not play into opponent's win.
+            return -1;
+        }
+
+        let player = self.board ^ self.total_board;
+        let not_taken = PLAYABLE_REGION ^ self.total_board;
+        let winning_position = Board::winning_moves(player | mv, not_taken);
+        return winning_position.count_ones() as i8;
     }
 
     /// returns the moves that position p can use to win immediately on their turn.

@@ -66,7 +66,7 @@ impl Explorer {
             return (col, eval);
         }
         // losing case
-        let losing_moves = board.opp_win_moves(possible);
+        let (losing_moves, _) = board.opp_win_moves(possible);
         if losing_moves != 0 {
             let col = Board::pos_to_col(losing_moves);
             return (col, eval);
@@ -198,7 +198,7 @@ impl Explorer {
         }
 
         // if there are more than 1 move that enables opponent to win, we are toast.
-        let essential_moves = board.opp_win_moves(possible);
+        let (essential_moves, future_pos_loss) = board.opp_win_moves(possible);
         if essential_moves != 0 && !Board::at_most_one_bit_set(essential_moves) {
             let lose_eval = -Explorer::win_eval(moves_played + 2);
             return lose_eval;
@@ -238,7 +238,7 @@ impl Explorer {
                 if refutation == c { // prioritize searching refutation move first.
                     moves.add(m, c, REFUTATION_SCORE);
                 } else {
-                    moves.add(m, c, board.move_score(m));
+                    moves.add(m, c, board.move_score(m, future_pos_loss));
                 }
             }
             moves
