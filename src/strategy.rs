@@ -44,7 +44,7 @@ impl Explorer {
         // failed low, which are unusable for finding the principal variation.
         self.transpositiontable.clear();
 
-        let eval = self.evaluate(board);
+        let eval = self.evaluate_board(board, true);
 
         // if the game is already over, then we can't play anything.
         if board.is_game_over() {
@@ -80,8 +80,12 @@ impl Explorer {
         panic!("Node not found in transposition table.")
     }
 
-    /// evaluates the position, but doesn't return a corresponding move.
     pub fn evaluate(&mut self, board: &Board) -> i8 {
+        self.evaluate_board(board, false)
+    }
+
+    /// evaluates the position, but doesn't return a corresponding move.
+    pub fn evaluate_board(&mut self, board: &Board, reset_t_table: bool) -> i8 {
         // Checks if the game is already over.
         if board.has_winner() {
             // if board has winner already, then assume the current player is loser.
@@ -115,7 +119,7 @@ impl Explorer {
         // comparatively lower depths relative to windows nearer to the center, due to the way our
         // winning scores are assigned (e.g. MAX_SCORE - moves_played).
 
-        if board.moves_played() <= 0 { // only use the aspiration window if depth is past certain threshold.
+        if board.moves_played() <= 15 { // only use the aspiration window if depth is past certain threshold.
             let (mut g_min, mut g_max) = (start_min, start_max);
             let low_sz = 6;
             let high_sz = 6;
@@ -125,6 +129,8 @@ impl Explorer {
                 // -1 and +1 on the bounds in order for us to be able to obtain an exact move.
                 let asp_min = i8::max(min - 1, g_min - 1);
                 let asp_max = i8::min(max + 1, g_max + 1);
+
+                if reset_t_table { self.transpositiontable.clear(); }
                 let eval = self.search(board, asp_min, asp_max);
 
                 if asp_min < eval && eval < asp_max {
