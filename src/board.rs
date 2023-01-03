@@ -250,6 +250,7 @@ impl Board {
             return -1;
         }
 
+        // counts the number of threats we have, if we played mv.
         let player = self.board ^ self.total_board;
         let not_taken = PLAYABLE_REGION ^ self.total_board;
         let winning_position = Board::winning_moves(player | mv, not_taken);
