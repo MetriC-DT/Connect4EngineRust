@@ -115,7 +115,7 @@ impl Explorer {
         // comparatively lower depths relative to windows nearer to the center, due to the way our
         // winning scores are assigned (e.g. MAX_SCORE - moves_played).
 
-        if board.moves_played() <= 15 { // only use the aspiration window if depth is past certain threshold.
+        if board.moves_played() <= 0 { // only use the aspiration window if depth is past certain threshold.
             let (mut g_min, mut g_max) = (start_min, start_max);
             let low_sz = 6;
             let high_sz = 6;
