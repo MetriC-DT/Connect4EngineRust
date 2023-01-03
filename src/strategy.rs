@@ -51,33 +51,55 @@ impl Explorer {
             return (EMPTY_MOVE, eval);
         }
 
-        if let Some(entry) = self.transpositiontable.get_exact_entry(board) {
-            return (entry.get_mv(), eval);
+        let pv = self.get_pv(board);
+        println!("{:?}", pv);
+
+        if pv.len() > 0 {
+            return (pv[0], eval);
+        }
+
+        panic!("Node not found in transposition table.")
+    }
+
+    fn get_pv(&self, board: &Board) -> Vec<u8> {
+        let mut pv = Vec::new();
+        let mut board_cpy = board.clone();
+
+        loop {
+            if let Some(entry) = self.transpositiontable.get_exact_entry(&board_cpy) {
+                let mv = entry.get_mv();
+                if board_cpy.add(mv).is_ok() {
+                    pv.push(mv);
+                    continue;
+                }
+            }
+
+            break;
         }
 
         // Position probably is winning by next move, or losing by next opponent
         // move since we don't store those values in the transposition table.
-        let possible = board.possible_moves();
+        let possible = board_cpy.possible_moves();
 
         // winning case
-        let winning_moves = board.player_win_moves(possible);
+        let winning_moves = board_cpy.player_win_moves(possible);
         if winning_moves != 0 {
             let col = Board::pos_to_col(winning_moves);
-            return (col, eval);
+            pv.push(col);
         }
         // losing case
-        let (losing_moves, _) = board.opp_win_moves(possible);
+        let (losing_moves, _) = board_cpy.opp_win_moves(possible);
         if losing_moves != 0 {
             let col = Board::pos_to_col(losing_moves);
-            return (col, eval);
+            pv.push(col);
         }
         // draw case
         if possible != 0 {
             let col = Board::pos_to_col(possible);
-            return (col, eval);
+            pv.push(col);
         }
 
-        panic!("Node not found in transposition table.")
+        return pv;
     }
 
     pub fn evaluate(&mut self, board: &Board) -> i8 {
