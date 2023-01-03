@@ -66,6 +66,7 @@ impl Explorer {
         let mut board_cpy = board.clone();
 
         loop {
+            // TODO checks if game over.
             if let Some(entry) = self.transpositiontable.get_exact_entry(&board_cpy) {
                 let mv = entry.get_mv();
                 if board_cpy.add(mv).is_ok() {
@@ -87,7 +88,7 @@ impl Explorer {
             let col = Board::pos_to_col(winning_moves);
             pv.push(col);
         }
-        // losing case
+        // losing case: TODO - needs to be fixed to give the longest line.
         let (losing_moves, _) = board_cpy.opp_win_moves(possible);
         if losing_moves != 0 {
             let col = Board::pos_to_col(losing_moves);
@@ -218,7 +219,7 @@ impl Explorer {
 
         // if we had lost, it would have been on the turn after the next.
         // if a is less than the minimum possible score we can achieve, we can raise the bounds.
-        let min_eval = -Explorer::win_eval(moves_played + 1);
+        let min_eval = -Explorer::win_eval(moves_played + 2);
         a = i8::max(a, min_eval);
 
         // if we had won, it would have been on the next turn.
