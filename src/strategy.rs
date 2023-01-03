@@ -206,12 +206,12 @@ impl Explorer {
             let flag = entry.get_flag();
             let val = entry.get_eval();
 
-            if flag == FLAG_LOWER { // Failed high. We can update refutation move.
+            if flag == FLAG_UPPER { // Failed low.
+                b = i8::min(b, val);
+            }
+            else if flag == FLAG_LOWER { // Failed high. We can update refutation move.
                 a = i8::max(a, val);
                 refutation = entry.get_mv();
-            }
-            else if flag == FLAG_UPPER { // Failed low.
-                b = i8::min(b, val);
             }
             else { // exact node.
                 return val;
@@ -240,20 +240,18 @@ impl Explorer {
         };
 
         // for use in principal variation search.
-        let mut first = true;
         let mut final_eval = -MAX_SCORE;
         let mut final_mv = EMPTY_MOVE;
         let mut boardcpy = *board;
         let a_orig = a;
 
         // calculate evaluation.
-        for (m, c) in next_moves {
+        for (i, (m, c)) in next_moves.enumerate() {
             boardcpy.play(m);
 
             let mut val;
-            if first { // if first child, then assume it is the best move. Scan entire window.
+            if i == 0 { // if first child, then assume it is the best move. Scan entire window.
                 val = -self.search(&boardcpy, -b, -a);
-                first = false;
             }
             else { // search with a null window.
                 val = -self.search(&boardcpy, -a - 1, -a);
@@ -264,7 +262,7 @@ impl Explorer {
             }
 
             // revert back to original position
-            boardcpy = *board;
+            boardcpy.revert(m);
 
             // fail-high beta cutoff occurred. This is a CUT node.
             if val >= b {
@@ -284,7 +282,7 @@ impl Explorer {
         // insert into transposition table.
         let flag = if a > a_orig { // exact node (a < val < b)
             FLAG_EXACT
-        } else { // fail-low occurred.
+        } else { // fail-low occurred. We cannot use this move.
             FLAG_UPPER
         };
 
