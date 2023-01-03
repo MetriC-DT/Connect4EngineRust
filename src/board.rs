@@ -233,25 +233,31 @@ impl Board {
         return (immediate_opp_wins, future_opp_wins);
     }
 
-    pub fn non_losing_moves(&self, possible: Position) -> Position {
-        let (essential_moves, avoid_moves) = self.opp_win_moves(possible);
-        let avoid_moves = avoid_moves >> 1; // position below opponent's win.
-        if essential_moves != 0 {
-            if Board::at_most_one_bit_set(essential_moves) {
-                return essential_moves & !avoid_moves;
-            } else {
-                return 0; // there are no non-losing moves.
-            }
-        }
-        else { // don't play on a column that gives opponent win.
-            return possible & !avoid_moves;
-        }
-    }
-
     /// returns the moves that the current player can use to win.
     pub fn player_win_moves(&self, possible: Position) -> Position {
         let player = self.board ^ self.total_board;
         Board::winning_moves(player, possible)
+    }
+
+    /// returns the corresponding position of non-losing moves. 0 if there are no possible moves
+    /// that allows the player to survive.
+    pub fn non_losing_moves(&self, possible: Position) -> Position {
+        let (essential_moves, avoid_moves) = self.opp_win_moves(possible);
+        let essential_moves_count = essential_moves.count_ones();
+
+        if essential_moves_count > 1 { // there are no non-losing moves.
+            return 0;
+        } else if essential_moves_count == 1 {
+            return Self::remove_losing_moves(essential_moves, avoid_moves);
+        } else {
+            return Self::remove_losing_moves(possible, avoid_moves);
+        }
+    }
+
+    // don't play on a column that gives opponent win.
+    fn remove_losing_moves(possible: Position, avoid_moves: Position) -> Position {
+        let avoid_moves = avoid_moves >> 1; // position below opponent's win.
+        possible & !avoid_moves
     }
 
     /// calculates the score of a position if a player decides to play `mv`. This is used in move
