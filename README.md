@@ -9,9 +9,9 @@ A strong solver for Connect 4 built with rust. Inspiration from Pascal Pons' [Co
     - [x]  critical moves first
     - [x]  position heuristic
     - [x] Refutation Move (with Transposition Table)
+    - [ ] NNUE
 - [x] Transposition Table (Two-Tiered)
 - [x] Gradual Widening Aspiration Window
 - [ ] Saves Principal Variation
-- [ ] NNUE
 - [ ] Multithreaded search
 - [ ] Openings database
