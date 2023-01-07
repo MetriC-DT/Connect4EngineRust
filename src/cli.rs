@@ -18,8 +18,12 @@ use clap::{Parser, Subcommand, Args};
 
 /// command line arguments for the program.
 #[derive(Parser)]
-#[command(author, version, about, long_about=None)]
-#[command(propagate_version = true)]
+#[command(
+    author,
+    version,
+    about,
+    long_about=None,
+    propagate_version=true)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Option<Commands>,

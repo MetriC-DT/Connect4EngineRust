@@ -58,7 +58,7 @@ fn eval_position(pos: &str) -> Result<()> {
     let mut explorer = Explorer::new();
     let (mv, eval) = explorer.solve(&board);
 
-    println!("Best Move: {} (Eval {})", mv + 1, eval);
+    print_eval(mv, eval);
     Ok(())
 }
 
@@ -86,20 +86,25 @@ fn eval_from_stdin() -> Result<()> {
         // new position has been inputted. We can solve.
         let board = b.unwrap();
         let (mv, eval) = explorer.solve(&board);
-
-        // we want to output the columns in [1-7].
-        if mv == EMPTY_MOVE {
-            println!("{} {}", EMPTY_MOVE, eval);
-        }
-        else {
-            println!("{} {}", mv + 1, eval);
-        }
+        print_eval(mv, eval);
 
         // flush output immediately.
         io::stdout().flush()?;
     }
 
     Ok(())
+}
+
+/// Prints the evaluation and move, taking care of game over scenarios.
+fn print_eval(mv: u8, eval: i8) {
+    if mv == EMPTY_MOVE {
+        // is already game over.
+        println!("GameOver (Eval: {})", eval);
+    }
+    else {
+        // we want to output the columns in [1-7].
+        println!("Best Move: {} (Eval: {})", mv + 1, eval);
+    }
 }
 
 
