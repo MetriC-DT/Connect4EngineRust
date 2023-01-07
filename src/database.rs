@@ -150,7 +150,7 @@ impl Database {
                 break;
             }
 
-            if next_moves.is_empty() || board.is_game_over() { // no possible next moves.
+            if board.is_game_over() || next_moves.is_empty() { // no possible next moves.
                 if moves_played < min_moves {
                     // reset if we have not found a valid position with at least min_moves.
                     board = Board::new();

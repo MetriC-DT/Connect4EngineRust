@@ -123,6 +123,7 @@ impl Explorer {
 
     /// evaluates the position, but doesn't return a corresponding move.
     pub fn evaluate_board(&mut self, board: &Board, reset_t_table: bool) -> i8 {
+
         // Checks if the game is already over.
         if board.has_winner() {
             // if board has winner already, then assume the current player is loser.
