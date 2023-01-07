@@ -139,7 +139,7 @@ impl TranspositionTable {
     /// obtains the location of the key into the transposition table.
     pub fn location(key: u64) -> usize {
         let loc = key % u64::try_from(MAX_TABLE_SIZE).unwrap();
-        return loc.try_into().unwrap()
+        loc.try_into().unwrap()
     }
 
     /// Gets the entry using the given board to calculate the key.
@@ -156,11 +156,11 @@ impl TranspositionTable {
         let entry = &self.table[loc];
 
         if entry.0.get_key() == new_key && entry.0.get_flag() == FLAG_EXACT {
-            return Some(&entry.0);
+            Some(&entry.0)
         } else if entry.1.get_key() == new_key && entry.1.get_flag() == FLAG_EXACT {
-            return Some(&entry.1);
+            Some(&entry.1)
         } else {
-            return None;
+            None
         }
     }
 
@@ -171,11 +171,11 @@ impl TranspositionTable {
         let new_key = (key & STORED_KEY_BIT_MASK) as u32;
 
         if entry0.get_key() == new_key {
-            return Some(entry0);
+            Some(entry0)
         } else if entry1.get_key() == new_key {
-            return Some(entry1);
+            Some(entry1)
         } else {
-            return None
+            None
         }
     }
 

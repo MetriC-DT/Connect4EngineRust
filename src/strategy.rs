@@ -58,8 +58,6 @@ impl Explorer {
 
         // needs to clear our transposition table first. Otherwise, we might store some nodes that
         // failed low, which are unusable for finding the principal variation.
-        self.transpositiontable.clear();
-
         let eval = self.evaluate_board(board, true);
 
         // if the game is already over, then we can't play anything.
@@ -70,7 +68,7 @@ impl Explorer {
         let pv = self.get_pv(board);
         // println!("{:?}", pv);
 
-        if pv.len() > 0 {
+        if !pv.is_empty() {
             return (pv[0], eval);
         }
 
@@ -79,7 +77,7 @@ impl Explorer {
 
     fn get_pv(&self, board: &Board) -> Vec<u8> {
         let mut pv = Vec::new();
-        let mut board_cpy = board.clone();
+        let mut board_cpy = *board;
 
         loop {
             // TODO checks if game over.
@@ -116,7 +114,7 @@ impl Explorer {
             pv.push(col);
         }
 
-        return pv;
+        pv
     }
 
     pub fn evaluate(&mut self, board: &Board) -> i8 {
@@ -188,6 +186,7 @@ impl Explorer {
             }
         }
         else {
+            if reset_t_table { self.transpositiontable.clear(); }
             return self.search(board, start_min - 1, start_max + 1);
         }
     }

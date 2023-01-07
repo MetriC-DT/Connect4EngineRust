@@ -67,7 +67,7 @@ impl Database {
                     );
                     COMMIT;").unwrap();
 
-                return Self { connection }
+                Self { connection }
             },
             Err(s) => panic!("{}", s),
         }
@@ -138,7 +138,7 @@ impl Database {
 
             else if min_moves <= moves_played && moves_played <= max_moves {
                 // saves the board's current position.
-                boards.push((hist.clone(), board.clone()));
+                boards.push((hist.clone(), board));
 
                 // board is not game over, so we can keep playing moves.
                 let possible = board.possible_moves();
@@ -150,7 +150,7 @@ impl Database {
                 break;
             }
 
-            if next_moves.len() == 0 || board.is_game_over() { // no possible next moves.
+            if next_moves.is_empty() || board.is_game_over() { // no possible next moves.
                 if moves_played < min_moves {
                     // reset if we have not found a valid position with at least min_moves.
                     board = Board::new();

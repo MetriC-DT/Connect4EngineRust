@@ -76,7 +76,7 @@ fn eval_from_stdin() -> Result<()> {
         if r == 0 { break; }
 
         // we want to write the corresponding (mv, eval) pair.
-        let b = Board::new_position(&buf.trim());
+        let b = Board::new_position(buf.trim());
         if let Err(s) = b {
             // if cannot enter new position, print the error message.
             println!("{}", s);
@@ -159,13 +159,13 @@ fn play_position(position: Option<&str>) -> Result<()> {
 
             let player_mv = buf.chars().next();
 
-            if let None = player_mv {
+            if player_mv.is_none() {
                 println!("Not a valid move.");
                 continue;
             }
 
             let player_mv = player_mv.unwrap().to_digit(10);
-            if let None = player_mv {
+            if player_mv.is_none() {
                 println!("Input does not appear to be a number.");
                 continue;
             }
@@ -177,7 +177,7 @@ fn play_position(position: Option<&str>) -> Result<()> {
             }
 
             let player_mv = player_mv.unwrap().checked_sub(1);
-            if let None = player_mv {
+            if player_mv.is_none() {
                 println!("Not a valid column");
                 continue;
             }
@@ -215,7 +215,7 @@ fn test_files(filename: &str) -> Result<()> {
 
     for line in reader.lines() {
         let linestr = line?;
-        let linestr = linestr.split(" ").next().unwrap();
+        let linestr = linestr.split(' ').next().unwrap();
         count += 1;
         let next_board = Board::new_position(linestr)?;
 

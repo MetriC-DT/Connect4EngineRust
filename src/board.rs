@@ -120,21 +120,21 @@ impl Board {
         let mut board = Board::new();
         for (i, c) in position.chars().enumerate() {
             let mv = c.to_digit(10);
-            if let None = mv {
+            if mv.is_none() {
                 bail!("Invalid character in position {}", i);
             }
 
             let mv = mv.unwrap().checked_sub(1);
-            if let None = mv {
+            if mv.is_none() {
                 bail!("Invalid character in position {}", i);
             }
 
             let col: Result<u8, _> = mv.unwrap().try_into();
-            if let Err(_) = col {
+            if col.is_err() {
                 bail!("Invalid character in position {}", i);
             }
 
-            if let Err(_) = board.add(col.unwrap()) {
+            if board.add(col.unwrap()).is_err() {
                 bail!("Invalid character in position {}", i);
             }
         }
@@ -246,7 +246,7 @@ impl Board {
         let opp = self.board;
         let future_opp_wins = Board::winning_moves(opp, PLAYABLE_REGION);
         let immediate_opp_wins = future_opp_wins & possible;
-        return (immediate_opp_wins, future_opp_wins);
+        (immediate_opp_wins, future_opp_wins)
     }
 
     /// returns the moves that the current player can use to win.
@@ -262,11 +262,11 @@ impl Board {
         let essential_moves_count = essential_moves.count_ones();
 
         if essential_moves_count > 1 { // there are no non-losing moves.
-            return 0;
+            0
         } else if essential_moves_count == 1 {
-            return Self::remove_losing_moves(essential_moves, avoid_moves);
+            Self::remove_losing_moves(essential_moves, avoid_moves)
         } else {
-            return Self::remove_losing_moves(possible, avoid_moves);
+            Self::remove_losing_moves(possible, avoid_moves)
         }
     }
 
@@ -285,7 +285,7 @@ impl Board {
         let player = self.board ^ self.total_board;
         let not_taken = PLAYABLE_REGION ^ self.total_board;
         let winning_position = Board::winning_moves(player | mv, not_taken);
-        return winning_position.count_ones() as i8;
+        winning_position.count_ones() as i8
     }
 
     /// returns the moves that position p can use to win immediately on their turn.
@@ -433,10 +433,10 @@ impl Board {
     }
 
     pub fn is_first_player_win(&self) -> bool {
-        return self.has_winner() && (self.moves_played() % 2 == 1)
+        self.has_winner() && (self.moves_played() % 2 == 1)
     }
 
     pub fn is_second_player_win(&self) -> bool {
-        return self.has_winner() && (self.moves_played() % 2 == 0)
+        self.has_winner() && (self.moves_played() % 2 == 0)
     }
 }
