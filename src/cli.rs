@@ -34,17 +34,17 @@ pub enum Commands {
 #[derive(Args)]
 pub struct DB {
     /// file to save the new database, or append if it already exists.
-    file: String,
+    pub file: String,
 
     /// number of elements to save to the database.
     #[arg(short, long, default_value_t=1000)]
-    num: usize,
+    pub num: usize,
 
     /// minimum number of moves played required for each database entry.
     #[arg(long, default_value_t=0)]
-    min: u8,
+    pub min: u8,
 
     /// maximum number of moves played required for each database entry.
     #[arg(long, default_value_t=42)]
-    max: u8
+    pub max: u8
 }

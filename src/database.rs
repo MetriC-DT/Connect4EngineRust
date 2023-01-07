@@ -80,7 +80,7 @@ impl Database {
 
             for (hist, board) in boards {
                 let eval = explorer.evaluate(&board);
-                println!("{} {}", board, hist);
+                // println!("{}{}\n", board, hist);
 
                 // insert into database.
                 let mut stmt = self.connection.prepare_cached(INSERT_STR)?;

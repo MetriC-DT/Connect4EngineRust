@@ -1,5 +1,6 @@
 use clap::Parser;
 use connect4engine::cli::{Cli, Commands};
+use connect4engine::database::Database;
 use connect4engine::moves::EMPTY_MOVE;
 use connect4engine::{strategy::Explorer, board::Board};
 use std::fs;
@@ -22,10 +23,16 @@ fn main() -> Result<()> {
         Commands::Test { file } => test_files(file)?,
         Commands::Eval { position } => eval_position(position)?,
         Commands::Play { position } => play_position(position.as_deref())?,
-
-        Commands::DB(_) => todo!(),
+        Commands::DB(db) => create_database(&db.file, db.max, db.min, db.num)?,
     };
 
+    Ok(())
+}
+
+/// creates a sqlite3 database of positions at the specified location.
+fn create_database(filename: &str, max: u8, min: u8, num: usize) -> Result<()> {
+    let mut db = Database::new(filename);
+    db.write_entries(num, max, min)?;
     Ok(())
 }
 
