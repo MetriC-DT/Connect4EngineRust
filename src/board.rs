@@ -261,11 +261,15 @@ impl Board {
         let (essential_moves, avoid_moves) = self.opp_win_moves(possible);
         let essential_moves_count = essential_moves.count_ones();
 
-        if essential_moves_count > 1 { // there are no non-losing moves.
+        // keeping this as an if statement rather than match arms performs slightly better.
+        if essential_moves_count > 1 {
+            // There are >1 moves that we need to play to prevent opponent winning.
             0
         } else if essential_moves_count == 1 {
+            // There are at least 1 essential moves we need to play.
             Self::remove_losing_moves(essential_moves, avoid_moves)
         } else {
+            // We just need to avoid moves that enable opponent to win.
             Self::remove_losing_moves(possible, avoid_moves)
         }
     }
