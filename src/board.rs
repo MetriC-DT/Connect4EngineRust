@@ -339,6 +339,11 @@ impl Board {
         self.total_board ^ self.board
     }
 
+    /// returns the position from the opposing player's perspective.
+    pub fn get_opp_player_pos(&self) -> Position {
+        self.board
+    }
+
     /// Returns a new position with `mv` played on `pos`.
     /// Assumes that mv can be played, and pos is valid. Undefined behavior if it is not.
     pub fn test_pos(pos: Position, mv: Position) -> Position {

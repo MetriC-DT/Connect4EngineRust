@@ -1,49 +1,30 @@
+use clap::Parser;
+use connect4engine::cli::{Cli, Commands};
 use connect4engine::moves::EMPTY_MOVE;
 use connect4engine::{strategy::Explorer, board::Board};
 use std::fs;
 use std::time::Instant;
 use std::io::{self, BufReader, BufRead, Write};
-use clap::Parser;
 use anyhow::Result;
-
-/// command line arguments to use.
-#[derive(Parser, Debug)]
-#[command(author, version, about)]
-struct Args {
-
-    /// name of the test file to run (format inside test_inputs)
-    #[arg(short, long)]
-    test_file: Option<String>,
-
-    /// plays the given position (empty string for new position)
-    #[arg(short, long)]
-    play: Option<String>,
-
-    /// evaluates the given position (mv, evaluation)
-    #[arg(short, long)]
-    eval: Option<String>,
-}
 
 /// main function
 fn main() -> Result<()> {
-    let args = Args::parse();
+    let cli = Cli::parse();
 
-    if let Some(filename) = args.test_file {
-        test_files(&filename)?;
-    }
-
-    // Plays from the given position, if it exists. default creates a new board.
-    else if let Some(position) = args.play {
-        play_position(&position)?;
-    }
-
-    else if let Some(position) = args.eval {
-        eval_position(&position)?;
-    }
-
-    else {
+    // if no command inputted, run the stdin.
+    if cli.command.is_none() {
         eval_from_stdin()?;
+        return Ok(())
     }
+
+    // command was inputted. Need to parse.
+    match &cli.command.unwrap() {
+        Commands::Test { file } => test_files(file)?,
+        Commands::Eval { position } => eval_position(position)?,
+        Commands::Play { position } => play_position(position.as_deref())?,
+
+        Commands::DB(_) => todo!(),
+    };
 
     Ok(())
 }
@@ -100,9 +81,18 @@ fn eval_from_stdin() -> Result<()> {
 
 
 /// plays the game from the given position.
-fn play_position(position: &str) -> Result<()> {
-    let mut pos_str = String::from(position);
-    let mut board = Board::new_position(position)?;
+fn play_position(position: Option<&str>) -> Result<()> {
+    let mut board;
+    let mut pos_str;
+
+    if let Some(s) = position {
+        pos_str = String::from(s);
+        board = Board::new_position(s)?;
+    }
+    else {
+        pos_str = String::new();
+        board = Board::new();
+    }
 
     let mut explorer = Explorer::new();
 

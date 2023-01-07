@@ -8,7 +8,9 @@ description = "A Connect 4 Engine written in Rust"
 
 [dependencies]
 clap = { version = "4.0.30", features = ["derive"] }
+rusqlite = { version = "0.28.0", features = ["bundled"] }
 anyhow = "1.0.68"
+rand = "0.8.5"
 
 [profile.dev]
 opt-level=3

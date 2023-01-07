@@ -52,7 +52,7 @@ impl Explorer {
         }
 
         let pv = self.get_pv(board);
-        println!("{:?}", pv);
+        // println!("{:?}", pv);
 
         if pv.len() > 0 {
             return (pv[0], eval);
