@@ -36,15 +36,15 @@ pub struct DB {
     /// file to save the new database, or append if it already exists.
     file: String,
 
-    /// number of elements to save to the database. 1000 by default.
-    #[arg(short, long)]
-    num: Option<usize>,
+    /// number of elements to save to the database.
+    #[arg(short, long, default_value_t=1000)]
+    num: usize,
 
-    /// minimum number of moves played required for each database entry. 42 by default.
-    #[arg(long)]
-    min: Option<u8>,
+    /// minimum number of moves played required for each database entry.
+    #[arg(long, default_value_t=0)]
+    min: u8,
 
-    /// maximum number of moves played required for each database entry. 0 by default.
-    #[arg(long)]
-    max: Option<u8>
+    /// maximum number of moves played required for each database entry.
+    #[arg(long, default_value_t=42)]
+    max: u8
 }
