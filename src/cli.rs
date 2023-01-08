@@ -68,7 +68,7 @@ pub struct DB {
     #[arg(long, default_value_t=42)]
     pub max: u8,
 
-    /// Whether we want to write to stdin or not.
+    /// Enable reading positions from stdin. Overrides all the other optional flags.
     #[arg(long, default_value_t=false)]
     pub stdin: bool,
 }

@@ -16,7 +16,7 @@
 
 use crate::moves::Moves;
 use crate::strategy::Explorer;
-use crate::board::{Position, Board};
+use crate::board::{Board, SIZE};
 use anyhow::Result;
 use rand::seq::SliceRandom;
 use rusqlite::Connection;
@@ -106,7 +106,7 @@ impl Database {
     /// entries in the database.
     /// `max_moves` and `min_moves` gives the inclusive bounds of the number of moves the entry can
     /// contain.
-    pub fn write_entries(
+    pub fn write_entries_random(
         &mut self,
         num_entries: usize,
         max_moves: u8,
@@ -140,57 +140,51 @@ impl Database {
     /// generates a random legal board position. The corresponding string in the tuple of the
     /// vector is the move history.
     fn generate_random_board_positions(min_moves: u8, max_moves: u8) -> Vec<(String, Board)> {
-        let mut boards = Vec::new();
+        let (mut hist, mut board) = Self::generate_random_board(min_moves);
+        let mut hist_board_pairs = Vec::new();
 
-        let mut board = Board::new();
-        let mut hist = String::with_capacity(max_moves.into());
+        // inserts the starting position into the board history.
+        hist_board_pairs.push((hist.clone(), board));
 
-        loop {
-            let moves_played = board.moves_played() as u8;
-            let next_moves: Vec<(Position, u8)>;
+        while !board.is_game_over() && board.moves_played() < max_moves.into() {
+            let possible = board.possible_moves();
+            let poss_moves: Vec<_> = Moves::new(possible).collect();
+            let (mv_pos, col) = poss_moves.choose(&mut rand::thread_rng()).unwrap();
+            board.play(*mv_pos);
+            hist.push_str(&(col + 1).to_string());
 
-            if moves_played < min_moves {
-                // want to play moves that don't lose immediately.
-                let possible = board.possible_moves();
-                let non_losing = board.non_losing_moves(possible);
-                next_moves = Moves::new(non_losing).collect();
-            }
-
-            else if min_moves <= moves_played && moves_played <= max_moves {
-                // saves the board's current position.
-                boards.push((hist.clone(), board));
-
-                // board is not game over, so we can keep playing moves.
-                let possible = board.possible_moves();
-                next_moves = Moves::new(possible).collect();
-            }
-
-            else {
-                // we have exceeded the maximum number of moves.
-                break;
-            }
-
-            if board.is_game_over() || next_moves.is_empty() { // no possible next moves.
-                if moves_played < min_moves {
-                    // reset if we have not found a valid position with at least min_moves.
-                    board = Board::new();
-                    hist.clear();
-                    continue;
-                }
-                else {
-                    break;
-                }
-            }
-            else {
-                // there is at least 1 possible next move.
-                // chooses a random move from possible_moves. There should at least be one possible
-                // move since the game is not over.
-                let (mv_pos, mv) = next_moves.choose(&mut rand::thread_rng()).unwrap();
-                board.play(*mv_pos);
-                hist.push_str(&(mv + 1).to_string());
-            }
+            hist_board_pairs.push((hist.clone(), board));
         }
 
-        boards
+        hist_board_pairs
+    }
+
+
+    /// generates a random position, with the specified amount of moves played.
+    fn generate_random_board(moves_played: u8) -> (String, Board) {
+        let mut history = String::with_capacity(SIZE as usize + 1);
+        let mut board = Board::new();
+
+        while board.moves_played() < moves_played.into() {
+            if board.is_game_over() { // reset if game over
+                board = Board::new();
+                history.clear();
+            }
+
+            // there should still be possible moves to play.
+            let possible = board.possible_moves();
+            let non_losing = board.non_losing_moves(possible);
+            let next_moves: Vec<_> = if non_losing == 0 {
+                Moves::new(possible).collect()
+            } else {
+                Moves::new(non_losing).collect()
+            };
+
+            let (mv_pos, mv) = next_moves.choose(&mut rand::thread_rng()).unwrap();
+            board.play(*mv_pos);
+            history.push_str(&(mv + 1).to_string());
+        }
+
+        (history, board)
     }
 }

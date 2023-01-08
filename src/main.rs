@@ -65,7 +65,7 @@ fn create_database(filename: &str, max: u8, min: u8, num: usize, stdin: bool) ->
         db.write_entries_from_list(positions.as_slice())?;
     }
     else { // generate random positions
-        db.write_entries(num, max, min)?;
+        db.write_entries_random(num, max, min)?;
     }
     Ok(())
 }
