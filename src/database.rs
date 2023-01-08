@@ -100,10 +100,8 @@ impl Database {
 
     /// writes `num_entries` randomly generated entries to a file.
     /// Expects the `filename` to be a sqlite3 database.
-    /// The number of batches that will be written can be calculated with
-    /// `ceil(num_entries / batch_size)`. If `filename` exists as a sqlite3 database, then we
-    /// append new entries into the table. Otherwise, creates a new file. There may be repeat
-    /// entries in the database.
+    /// If `filename` exists as a sqlite3 database, then we append new entries into the table.
+    /// Otherwise, creates a new file. There may be repeat entries in the database.
     /// `max_moves` and `min_moves` gives the inclusive bounds of the number of moves the entry can
     /// contain.
     pub fn write_entries_random(
