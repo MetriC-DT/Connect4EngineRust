@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use clap::Parser;
+use connect4engine::board::SIZE;
 use connect4engine::cli::{Cli, Commands};
 use connect4engine::database::Database;
 use connect4engine::moves::EMPTY_MOVE;
@@ -39,16 +40,33 @@ fn main() -> Result<()> {
         Commands::Test { file } => test_files(file)?,
         Commands::Eval { position } => eval_position(position)?,
         Commands::Play { position } => play_position(position.as_deref())?,
-        Commands::DB(db) => create_database(&db.file, db.max, db.min, db.num)?,
+        Commands::DB(db) => create_database(&db.file, db.max, db.min, db.num, db.stdin)?,
     };
 
     Ok(())
 }
 
 /// creates a sqlite3 database of positions at the specified location.
-fn create_database(filename: &str, max: u8, min: u8, num: usize) -> Result<()> {
+fn create_database(filename: &str, max: u8, min: u8, num: usize, stdin: bool) -> Result<()> {
     let mut db = Database::new(filename);
-    db.write_entries(num, max, min)?;
+
+    if stdin { // positions from stdin.
+        let mut positions = Vec::new();
+
+        loop {
+            let mut buf = String::with_capacity(SIZE as usize + 1);
+            let r = io::stdin().read_line(&mut buf)?;
+            if r == 0 { break; }
+            let strpos = String::from(buf.trim());
+            positions.push(strpos);
+        }
+
+        // put positions in the database.
+        db.write_entries_from_list(positions.as_slice())?;
+    }
+    else { // generate random positions
+        db.write_entries(num, max, min)?;
+    }
     Ok(())
 }
 

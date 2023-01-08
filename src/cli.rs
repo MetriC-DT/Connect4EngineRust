@@ -66,5 +66,9 @@ pub struct DB {
 
     /// maximum number of moves played required for each database entry.
     #[arg(long, default_value_t=42)]
-    pub max: u8
+    pub max: u8,
+
+    /// Whether we want to write to stdin or not.
+    #[arg(long, default_value_t=false)]
+    pub stdin: bool,
 }

@@ -73,6 +73,31 @@ impl Database {
         }
     }
 
+    /// generates an entry for each position in the list.
+    pub fn write_entries_from_list(&mut self, positions: &[String]) -> Result<()> {
+        let mut explorer = Explorer::new();
+        for position in positions {
+            let board = Board::new_position(position)?;
+            let eval = explorer.evaluate(&board);
+            self.write_entry(&board, position, eval)?;
+        }
+
+        // commit all the changes to the connected database.
+        self.connection.transaction()?.commit()?;
+        Ok(())
+    }
+
+    /// writes a singular entry into the database. Still need to commit changes at the end.
+    fn write_entry(&mut self, board: &Board, hist: &str, eval: i8) -> Result<()> {
+        let mut stmt = self.connection.prepare_cached(INSERT_STR)?;
+        let player = board.get_curr_player_pos();
+        let opponent = board.get_opp_player_pos();
+        let moves_played = board.moves_played();
+        let entry = (hist, moves_played, player, opponent, eval);
+        stmt.execute(entry)?;
+        Ok(())
+    }
+
     /// writes `num_entries` randomly generated entries to a file.
     /// Expects the `filename` to be a sqlite3 database.
     /// The number of batches that will be written can be calculated with
@@ -95,16 +120,11 @@ impl Database {
             let boards = Self::generate_random_board_positions(min_moves, max_moves);
 
             for (hist, board) in boards {
+                println!("Currently evaluating\n{}{}\n", board, hist);
                 let eval = explorer.evaluate(&board);
-                // println!("{}{}\n", board, hist);
 
                 // insert into database.
-                let mut stmt = self.connection.prepare_cached(INSERT_STR)?;
-                let player = board.get_curr_player_pos();
-                let opponent = board.get_opp_player_pos();
-                let moves_played = board.moves_played();
-                let entry = (hist, moves_played, player, opponent, eval);
-                stmt.execute(entry)?;
+                self.write_entry(&board, &hist, eval)?;
 
                 // successfully added a new entry.
                 count += 1;

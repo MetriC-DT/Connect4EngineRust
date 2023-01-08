@@ -81,6 +81,16 @@ fn test_endgame_6() {
 }
 
 #[test]
+fn test_multi_win() {
+    let line = "22364";
+    let (turncount, board) = run_game(line);
+    assert!(board.is_first_player_win());
+    assert!(!board.is_second_player_win());
+    assert!(!board.is_filled());
+    assert_eq!(turncount, 2);
+}
+
+#[test]
 fn test_one_move_win() {
     let line = "141414";
     let (turncount, board) = run_game(line);
