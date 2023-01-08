@@ -172,7 +172,10 @@ fn play_position(position: Option<&str>) -> Result<()> {
             let mut buf = String::new();
             print!("Enter column [1-7] > ");
             io::stdout().flush()?;
-            io::stdin().read_line(&mut buf)?;
+            let r = io::stdin().read_line(&mut buf)?;
+
+            // if EOF was inputted, quit.
+            if r == 0 { return Ok(()); }
 
             buf = buf.trim().to_string();
             if buf.len() != 1 {
