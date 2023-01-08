@@ -20,18 +20,20 @@ use crate::board::{Position, WIDTH};
 /// a Moves-like iterator but with the moves stored from low scores to high.
 /// Higher scores are returned from the iterator before lower ones.
 #[derive(Clone)]
-pub struct ScoredMoves {
+pub struct ScoredMoves<T> where T: std::marker::Copy {
 
     /// array of (Position, corresponding_col, position_score) for each possible move.
-    move_scores: [MaybeUninit<(Position, u8, i8)>; WIDTH as usize],
+    move_scores: [MaybeUninit<(Position, u8, T)>; WIDTH as usize],
 
     /// number of elements for iterator to emit.
     size: usize,
 
+    /// index of the iterator.
     ptr: usize
 }
 
-impl ScoredMoves {
+impl<T> ScoredMoves<T> where T: std::marker::Copy + std::cmp::PartialOrd {
+    /// creates a new `ScoredMoves` iterator.
     pub fn new() -> Self {
         let move_scores = [MaybeUninit::uninit(); WIDTH as usize];
         let size = 0;
@@ -39,7 +41,8 @@ impl ScoredMoves {
         Self { move_scores, size, ptr }
     }
 
-    pub fn new_with(mv: Position, col: u8, score: i8) -> Self {
+    /// creates a new `ScoredMoves` iterator with an initial element in it.
+    pub fn new_with(mv: Position, col: u8, score: T) -> Self {
         let mut move_scores = [MaybeUninit::uninit(); WIDTH as usize];
         let size = 1;
         let ptr = 0;
@@ -47,7 +50,8 @@ impl ScoredMoves {
         Self { move_scores, size, ptr }
     }
 
-    pub fn add(&mut self, mv: Position, col: u8, score: i8) {
+    /// adds a new move, col, score triple in order.
+    pub fn add(&mut self, mv: Position, col: u8, score: T) {
         let mut i = self.size;
         self.size += 1;
 
@@ -69,7 +73,7 @@ impl ScoredMoves {
     }
 }
 
-impl Iterator for ScoredMoves {
+impl<T> Iterator for ScoredMoves<T> where T: std::marker::Copy {
     type Item=(Position, u8);
 
     fn next(&mut self) -> Option<Self::Item> {
