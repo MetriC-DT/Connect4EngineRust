@@ -57,7 +57,7 @@ pub struct DB {
     pub file: String,
 
     /// number of elements to save to the database.
-    #[arg(short, long, default_value_t=1000)]
+    #[arg(short, long, default_value_t=10000)]
     pub num: usize,
 
     /// minimum number of moves played required for each database entry.

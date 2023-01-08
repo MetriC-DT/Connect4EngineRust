@@ -13,7 +13,7 @@ rand = "0.8.5"
 
 [dependencies.clap]
 version = "4.0.30"
-features = ["derive", "color"]
+features = ["derive"]
 
 [dependencies.rusqlite]
 version = "0.28.0"
