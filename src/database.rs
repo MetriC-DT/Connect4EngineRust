@@ -118,7 +118,7 @@ impl Database {
             let boards = Self::generate_random_board_positions(min_moves, max_moves);
 
             for (hist, board) in boards {
-                println!("Currently evaluating\n{}{}\n", board, hist);
+                // println!("Currently evaluating\n{}{}\n", board, hist);
                 let eval = explorer.evaluate(&board);
 
                 // insert into database.
@@ -158,7 +158,8 @@ impl Database {
     }
 
 
-    /// generates a random position, with the specified amount of moves played.
+    /// generates a random position, with the specified amount of moves played. The game may be
+    /// completed at exactly `moves_played` but never before.
     fn generate_random_board(moves_played: u8) -> (String, Board) {
         let mut history = String::with_capacity(SIZE as usize + 1);
         let mut board = Board::new();

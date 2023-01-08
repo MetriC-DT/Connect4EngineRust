@@ -171,7 +171,7 @@ impl Explorer {
                 if reset_t_table { self.transpositiontable.clear(); }
                 let eval = self.search(board, asp_min, asp_max);
 
-                if (asp_min < eval && eval < asp_max) || (g_max < g_min) {
+                if asp_min < eval && eval < asp_max {
                     return eval;
                 }
                 else if eval <= asp_min { // failed low.
@@ -183,6 +183,10 @@ impl Explorer {
                     g_min = if eval == asp_max { asp_max } else { asp_max + 1 };
                     min = g_max - high_sz;
                     max = g_max;
+                }
+
+                if g_max <= g_min {
+                    return eval;
                 }
             }
         }
