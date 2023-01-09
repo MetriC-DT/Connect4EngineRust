@@ -42,14 +42,21 @@ pub struct Explorer {
     nodes_explored: usize,
 
     /// transposition table used by the explorer.
-    transpositiontable: TranspositionTable
+    transpositiontable: TranspositionTable,
+
+    /// number of moves that failed low.
+    fail_low_nodes: usize,
+
+    /// number of moves that failed high.
+    fail_high_nodes: usize
 }
 
 impl Explorer {
     pub fn new() -> Self {
         let nodes_explored = 0;
         let transpositiontable = TranspositionTable::new();
-        Self { nodes_explored, transpositiontable }
+        let (fail_low_nodes, fail_high_nodes) = (0, 0);
+        Self { nodes_explored, transpositiontable, fail_low_nodes, fail_high_nodes }
     }
 
     /// returns the optimal move and evaluation for this explorer's current position.
@@ -320,6 +327,7 @@ impl Explorer {
                 // move inserted is refutation move.
                 // can use this inserted move for move ordering.
                 self.transpositiontable.insert_with_key(board_key, val, FLAG_LOWER, depth, c);
+                self.fail_high_nodes += 1;
                 return val;
             }
 
@@ -337,6 +345,7 @@ impl Explorer {
         let flag = if a > a_orig { // exact node (a < val < b)
             FLAG_EXACT
         } else { // fail-low occurred. We cannot use this move.
+            self.fail_low_nodes += 1;
             FLAG_UPPER
         };
 
@@ -344,7 +353,8 @@ impl Explorer {
         final_eval
     }
 
-    /// returns positive number upon winning. 0 for not win.
+    /// Assumes the game finished in `moves_played` number of moves, and assigns a score to the
+    /// winner.
     fn win_eval(moves_played: u32) -> i8 {
         MAX_SCORE - moves_played as i8
     }
@@ -352,5 +362,15 @@ impl Explorer {
     /// returns the number of nodes explored.
     pub fn get_nodes_explored(&self) -> usize {
         self.nodes_explored
+    }
+
+    /// percent of nodes that failed low (decimal).
+    pub fn get_fail_lows(&self) -> f32 {
+        self.fail_low_nodes as f32 / self.nodes_explored as f32
+    }
+
+    /// percent of nodes that failed high (decimal).
+    pub fn get_fail_highs(&self) -> f32 {
+        self.fail_high_nodes as f32 / self.nodes_explored as f32
     }
 }

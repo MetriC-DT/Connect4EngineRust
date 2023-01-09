@@ -35,4 +35,4 @@ if __name__ == "__main__":
         outputfile = f'test_outputs/{basename}.log'
         os.system(f' RUSTFLAGS="-C target-cpu=native" cargo r --release -- test {file_to_check} > {outputfile}')
         validate(file_to_check, outputfile)
-        os.system(f'tail -n5 test_outputs/{basename}.log')
+        os.system(f'tail -n7 test_outputs/{basename}.log')
