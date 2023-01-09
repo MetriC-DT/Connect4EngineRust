@@ -315,9 +315,6 @@ impl Explorer {
                 }
             }
 
-            // revert back to original position
-            boardcpy.revert(m);
-
             // fail-high beta cutoff occurred. This is a CUT node.
             if val >= b {
                 // move inserted is refutation move.
@@ -331,6 +328,9 @@ impl Explorer {
                 final_eval = val;
                 final_mv = c;
             }
+
+            // revert back to original position
+            boardcpy.revert(m);
         }
 
         // insert into transposition table.
