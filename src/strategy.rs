@@ -17,7 +17,7 @@
 use crate::scoredmoves::ScoredMoves;
 use crate::transpositiontable::{TranspositionTable, FLAG_UPPER, FLAG_LOWER, FLAG_EXACT};
 use crate::moves::{EMPTY_MOVE, Moves};
-use crate::board::{SIZE, Board};
+use crate::board::{SIZE, Board, Position};
 
 pub const MAX_SCORE: i8 = 2 + SIZE as i8;
 pub const TIE_SCORE: i8 = 0;
@@ -169,7 +169,7 @@ impl Explorer {
                 let asp_max = i8::min(max + 1, g_max + 1);
 
                 if reset_t_table { self.transpositiontable.clear(); }
-                let eval = self.search(board, asp_min, asp_max);
+                let eval = self.search(board, asp_min, asp_max, Board::move_score);
 
                 if asp_min < eval && eval < asp_max {
                     return eval;
@@ -192,7 +192,7 @@ impl Explorer {
         }
         else {
             if reset_t_table { self.transpositiontable.clear(); }
-            return self.search(board, start_min - 1, start_max + 1);
+            return self.search(board, start_min - 1, start_max + 1, Board::move_score);
         }
     }
 
@@ -202,10 +202,17 @@ impl Explorer {
     /// * negamax (principal variation search)
     /// * transposition table
     /// * Fail-soft boundaries
+    ///
+    /// Parameters:
+    /// board - the board to find the best move of
+    /// a - alpha-beta pruning lower bound
+    /// b - alpha-beta pruning upper bound
+    /// f - move-ordering function (returns score, where higher is better for current player).
     fn search(&mut self,
               board: &Board,
               mut a: i8,
-              mut b: i8) -> i8 {
+              mut b: i8,
+              f: fn(&Board, Position) -> i8) -> i8 {
 
         // increment nodes searched.
         self.nodes_explored += 1;
@@ -282,7 +289,7 @@ impl Explorer {
                 next_moves.add(m, c, REFUTATION_SCORE);
             }
             else {
-                next_moves.add(m, c, board.move_score(m));
+                next_moves.add(m, c, f(board, m));
             }
         }
 
@@ -298,13 +305,13 @@ impl Explorer {
 
             let mut val;
             if i == 0 { // if first child, then assume it is the best move. Scan entire window.
-                val = -self.search(&boardcpy, -b, -a);
+                val = -self.search(&boardcpy, -b, -a, f);
             }
             else { // search with a null window.
-                val = -self.search(&boardcpy, -a - 1, -a);
+                val = -self.search(&boardcpy, -a - 1, -a, f);
 
                 if a < val && val < b { // if failed high, do a full re-search.
-                    val = -self.search(&boardcpy, -b, -val);
+                    val = -self.search(&boardcpy, -b, -val, f);
                 }
             }
 
