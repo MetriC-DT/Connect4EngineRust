@@ -26,22 +26,22 @@ use rusqlite::Connection;
 /// The variables we store in each entry of the table are:
 ///
 /// string of moves made to get to the current position.
-/// move_history: String
+/// history: String
 ///
-/// number of moves played on the board.
-/// moves_played: u32
+/// Player to move next (either 0 or 1. Starting position will have player 0, and alternate p1)
+/// p2mv: u32
 ///
-/// Bitboard of the player who just made a move (the current player).
-/// player_board: Position
+/// Bitboard of the first player (p0).
+/// p0: Position
 ///
-/// Bitboard of the player who is next to move (the opponent player).
-/// opp_board: Position
+/// Bitboard of the second player (p1).
+/// p1: Position
 ///
 /// evaluation score. (Calculated with `MAX_SCORE - moves_played` at the final position,
 /// assuming both sides played perfectly.)
 /// eval: i8
 
-const INSERT_STR: &str = "INSERT INTO positions (history, moves, player, opponent, eval) VALUES (?,?,?,?,?)";
+const INSERT_STR: &str = "INSERT INTO positions (history, p2mv, p0, p1, eval) VALUES (?,?,?,?,?)";
 
 /// Helper to generate a database of random legal positions for use in training the NNUE and
 /// perhaps in generating a good openings database.
@@ -60,9 +60,9 @@ impl Database {
                     "BEGIN;
                     CREATE TABLE IF NOT EXISTS positions (
                         history TEXT,
-                        moves INTEGER,
-                        player INTEGER,
-                        opponent INTEGER,
+                        p2mv INTEGER,
+                        p0 INTEGER,
+                        p1 INTEGER,
                         eval INTEGER
                     );
                     COMMIT;").unwrap();
@@ -93,7 +93,15 @@ impl Database {
         let player = board.get_curr_player_pos();
         let opponent = board.get_opp_player_pos();
         let moves_played = board.moves_played();
-        let entry = (hist, moves_played, player, opponent, eval);
+
+        let p2mv = moves_played % 2; // obtains the next player to move (0 or 1)
+        let (p0, p1) = if p2mv == 0 {
+            (player, opponent)
+        } else {
+            (opponent, player)
+        };
+
+        let entry = (hist, p2mv, p0, p1, eval);
         stmt.execute(entry)?;
         Ok(())
     }
