@@ -31,6 +31,9 @@ use rusqlite::Connection;
 /// Player to move next (either 0 or 1. Starting position will have player 0, and alternate p1)
 /// p2mv: u32
 ///
+/// Number of moves that have been played.
+/// moves: u32
+///
 /// Bitboard of the first player (p0).
 /// p0: Position
 ///
@@ -41,7 +44,7 @@ use rusqlite::Connection;
 /// assuming both sides played perfectly.)
 /// eval: i8
 
-const INSERT_STR: &str = "INSERT INTO positions (history, p2mv, p0, p1, eval) VALUES (?,?,?,?,?)";
+const INSERT_STR: &str = "INSERT INTO positions (history, p2mv, moves, p0, p1, eval) VALUES (?,?,?,?,?,?)";
 
 /// Helper to generate a database of random legal positions for use in training the NNUE and
 /// perhaps in generating a good openings database.
@@ -61,6 +64,7 @@ impl Database {
                     CREATE TABLE IF NOT EXISTS positions (
                         history TEXT,
                         p2mv INTEGER,
+                        moves INTEGER,
                         p0 INTEGER,
                         p1 INTEGER,
                         eval INTEGER
@@ -101,7 +105,7 @@ impl Database {
             (opponent, player)
         };
 
-        let entry = (hist, p2mv, p0, p1, eval);
+        let entry = (hist, p2mv, moves_played, p0, p1, eval);
         stmt.execute(entry)?;
         Ok(())
     }

@@ -11,9 +11,10 @@ Specifically:
 """
 
 def create_table(cursor, connection):
-    cursor.execute("""CREATE TABLE IF NOT EXISTS positions 
+    cursor.execute("""CREATE TABLE IF NOT EXISTS positions
                 (history TEXT,
                  p2mv INTEGER,
+                 moves INTEGER,
                  p0 INTEGER,
                  p1 INTEGER,
                  eval INTEGER)""")
@@ -27,13 +28,12 @@ def insert_into_new(conn: Connection, cur: Cursor, src: str):
 
     def new_entry(old_entry):
         """Converts the old entry format to the new one."""
-        (hist, moves, player, opp, eval) = old_entry
-        p2mv = moves % 2
-        (p0, p1) = (player, opp) if p2mv == 0 else (opp, player)
-        return (hist, p2mv, p0, p1, eval)
+        (hist, p2mv, p0, p1, eval) = old_entry
+        moves = len(hist)
+        return (hist, p2mv, moves, p0, p1, eval)
 
     new_entries = map(new_entry, s_cur.fetchall())
-    cur.executemany('INSERT INTO positions VALUES(?,?,?,?,?)', new_entries)
+    cur.executemany('INSERT INTO positions VALUES(?,?,?,?,?,?)', new_entries)
 
     conn.commit()
     return
