@@ -2,4 +2,4 @@
 rr = "run --release"
 
 [build]
-rustflags = ["-C", "target-cpu=native", "-C", "target-feature=+popcnt,+avx,+avx2,+lzcnt,+sse4.2,+sse4.1,+sse"]
+rustflags = ["-C", "target-cpu=native"]
