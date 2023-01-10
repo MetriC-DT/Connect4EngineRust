@@ -999,8 +999,8 @@
 33213163344235267	0
 315137257314555731757	4
 
-time elapsed:        5004369us
+time elapsed:        5041317us
 positions evaluated: 44560168
-speed:               8904.253 Kpos/s
-Avg time:            5004.369 us
+speed:               8838.993 Kpos/s
+Avg time:            5041.317 us
 Avg nodes:           44560.168
