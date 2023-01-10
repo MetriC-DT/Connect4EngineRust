@@ -263,8 +263,6 @@ fn test_files(filename: &str) -> Result<()> {
     println!("speed:               {} Kpos/s", nodecount as f32 / totaltime as f32 * 1000.0);
     println!("Avg time:            {} us", totaltime as f32 / count as f32);
     println!("Avg nodes:           {}", nodecount as f32 / count as f32);
-    println!("Nodes failed low:    {:.3}%", explorer.get_fail_lows() * 100.0);
-    println!("Nodes failed high:   {:.3}%", explorer.get_fail_highs() * 100.0);
 
     Ok(())
 }
