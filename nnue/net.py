@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 # Hyperparameters
 LEARNING_RATE = 1e-4
 LOSS_FN = nn.functional.mse_loss
-EPOCHS = 1000
+EPOCHS = 500
 BATCH_SIZE = 1024
 OUT_LOG = "train_output.log"
 
@@ -67,12 +67,13 @@ class Net(nn.Module):
         )
         return
 
-
-
     def forward(self, inputs: Tensor):
         """
-        Inputs are tensors of size (84, 1).
-        inputs[0:47]
+        Inputs are tensors of size (98, 1).
+        p0 - inputs[0:47]
+        p1 - inputs[48:95]
+        stm - inputs[96]
+        moves - inputs[97]
         """
         return self.seq_stack(inputs)
 
@@ -112,8 +113,9 @@ def train_model(model: Net,
         # if batch % 4 == 0:
         #     print(f'Batch {batch} Err {err.item()}')
 
-    print(f'TRAIN ERR: {train_err}')
-    return train_err
+    avg_error = train_err * BATCH_SIZE / len(dataloader)
+    print(f'TRAIN ERR: {avg_error}')
+    return avg_error
 
 def test_model(model: Net,
                dataloader: DataLoader,
@@ -125,7 +127,11 @@ def test_model(model: Net,
         predicted = model(tensor)
         err = loss_fn(predicted, expected)
         test_err += err.item()
-    return test_err
+
+    avg_error = test_err * BATCH_SIZE / len(dataloader)
+    print(f'TEST ERR: {avg_error}')
+    return avg_error
+
 
 def save_model(file: str, model: Net, optimizer: Optimizer, loss):
     """ Saves the model and the relevant functions to the specified file. """

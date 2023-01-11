@@ -7,12 +7,9 @@ def animate(_):
     datax1 = graph_data[:, 0]
     datax2 = graph_data[:, 1]
     plt.clf()
-    plt.subplot(1,2,1)
-    plt.plot(datax1)
-    plt.title("Train Err")
-    plt.subplot(1,2,2)
-    plt.plot(datax2)
-    plt.title("Test Err")
+    plt.plot(datax1, label='train')
+    plt.plot(datax2, label='test')
+    plt.legend()
 
 
 ani = FuncAnimation(plt.gcf(), animate, 1000)
