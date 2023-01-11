@@ -24,18 +24,6 @@ pub const TIE_SCORE: i8 = 0;
 pub const PV_SIZE: usize = SIZE as usize;
 const REFUTATION_SCORE: i8 = 16;
 
-// Evaluation table for number of possible 4-in-a-rows
-/*
-pub const EVALTABLE: [i16; SIZE as usize] = [
-    3, 4, 5,  7,  5,  4, 3,
-    4, 6, 8,  10, 8,  6, 4,
-    5, 8, 11, 13, 11, 8, 5,
-    5, 8, 11, 13, 11, 8, 5,
-    4, 6, 8,  10, 8,  6, 4,
-    3, 4, 5,  7,  5,  4, 3
-];
-*/
-
 #[derive(Debug)]
 pub struct Explorer {
     /// number of nodes this explorer has searched.

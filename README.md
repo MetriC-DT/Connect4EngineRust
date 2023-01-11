@@ -9,7 +9,7 @@ A strong solver for Connect 4 built with rust. Inspiration from Pascal Pons' [Co
     - [x]  critical moves first
     - [x]  position heuristic
     - [x] Refutation Move (with Transposition Table)
-    - [ ] NNUE
+    - [ ] NNUE ([training data](https://github.com/MetriC-DT/Connect4EngineRust/releases/tag/DB-v1))
 - [x] Transposition Table (Two-Tiered)
 - [x] Gradual Widening Aspiration Window
 - [ ] Saves Principal Variation
