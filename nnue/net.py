@@ -17,8 +17,8 @@ OUT_LOG = "train_output.log"
 # Number of features the network takes in as inputs.
 BOARD_BITS = 48
 NUM_FEATURES = 2 * BOARD_BITS + 1 + 1
-L0 = 16
-L1 = 16
+L0 = 32
+L1 = 32
 
 # only the bits [0..5, 7..12, 14..19, 21..26, 28..33, 35..40, 42..47] are relevant.
 # Subtracted 63 since notation is little endian.
@@ -82,14 +82,11 @@ def load_model(path: str, device: str):
     """ Loads the model if it exists, otherwise, returns a new one. """
     model = Net()
     optimizer = torch.optim.Adam(model.parameters())
+    loss = LOSS_FN
 
     if os.path.exists(path):
         ckpt = torch.load(path)
-        model.load_state_dict(ckpt['model'])
-        optimizer.load_state_dict(ckpt['optimizer'])
-        loss = ckpt['loss']
-    else:
-        loss = LOSS_FN
+        model.load_state_dict(ckpt)
 
     model = model.to(device)
     print(model.eval())
@@ -133,13 +130,11 @@ def test_model(model: Net,
     return avg_error
 
 
-def save_model(file: str, model: Net, optimizer: Optimizer, loss):
-    """ Saves the model and the relevant functions to the specified file. """
+def save_model(file: str, model: Net):
+    """ Saves the model to the specified file. """
 
     model_state_dict = model.state_dict()
-    opt_state_dict = optimizer.state_dict()
-    savedata = { 'model': model_state_dict, 'optimizer': opt_state_dict, 'loss': loss }
-    torch.save(savedata, file)
+    torch.save(model_state_dict, file)
     return
 
 

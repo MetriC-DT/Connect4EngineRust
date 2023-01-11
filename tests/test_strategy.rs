@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use connect4engine::{board::Board, strategy::Explorer};
+use connect4engine::{board::Board, strategy::Explorer, evaluate::{ThreatCountEvaluator, Evaluator}};
 
 #[test]
 fn test_endgame_1() {
@@ -103,7 +103,8 @@ fn test_one_move_win() {
 /// runs the game, returning (num_turns, resulting board)
 fn run_game(line: &str) -> (usize, Board) {
     let mut board = Board::new_position(line).unwrap();
-    let mut explorer = Explorer::new();
+    let evaluator = ThreatCountEvaluator::new();
+    let mut explorer = Explorer::new(evaluator);
 
     let mut turncount = 0;
     println!("{}", board);

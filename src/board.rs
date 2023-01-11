@@ -280,20 +280,8 @@ impl Board {
         possible & !avoid_moves
     }
 
-    /// calculates the score of a position if a player decides to play `mv`. This is used in move
-    /// ordering. mv is the move played.
-    ///
-    /// mv must be a valid move in possible. Undefined behavior if not.
-    pub fn move_score(&self, mv: Position) -> i8 {
-        // counts the number of threats we have, if we played mv.
-        let player = self.board ^ self.total_board;
-        let not_taken = PLAYABLE_REGION ^ self.total_board;
-        let winning_position = Board::winning_moves(player | mv, not_taken);
-        winning_position.count_ones() as i8
-    }
-
     /// returns the moves that position p can use to win immediately on their turn.
-    fn winning_moves(p: Position, possible: Position) -> Position {
+    pub fn winning_moves(p: Position, possible: Position) -> Position {
         // checks for connect 3s.
         // vertical (only need to check up).
         let mut win_moves = (p << 1) & (p << 2) & (p << 3);
@@ -357,6 +345,11 @@ impl Board {
     /// returns the position from the current player's perspective.
     pub fn get_curr_player_pos(&self) -> Position {
         self.total_board ^ self.board
+    }
+
+    /// returns the position of all moves played (both player's perspective)
+    pub fn get_total_pos(&self) -> Position {
+        self.total_board
     }
 
     /// returns the position from the opposing player's perspective.
@@ -443,4 +436,5 @@ impl Board {
     pub fn is_second_player_win(&self) -> bool {
         self.has_winner() && (self.moves_played() % 2 == 0)
     }
+
 }

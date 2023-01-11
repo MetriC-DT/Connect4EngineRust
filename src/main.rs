@@ -18,6 +18,7 @@ use clap::Parser;
 use connect4engine::board::SIZE;
 use connect4engine::cli::{Cli, Commands};
 use connect4engine::database::Database;
+use connect4engine::evaluate::{ThreatCountEvaluator, Evaluator};
 use connect4engine::moves::EMPTY_MOVE;
 use connect4engine::{strategy::Explorer, board::Board};
 use std::fs;
@@ -29,27 +30,37 @@ use anyhow::Result;
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
+    let evaluator = ThreatCountEvaluator::new();
+    let explorer = Explorer::new(evaluator);
+
     // if no command inputted, run the stdin.
     if cli.command.is_none() {
-        eval_from_stdin()?;
+        eval_from_stdin(explorer)?;
         return Ok(())
     }
 
+
     // command was inputted. Need to parse.
     match &cli.command.unwrap() {
-        Commands::Test { file } => test_files(file)?,
-        Commands::Eval { position } => eval_position(position)?,
-        Commands::Play { position } => play_position(position.as_deref())?,
-        Commands::DB(db) => create_database(&db.file, db.max, db.min, db.num, db.stdin)?,
+        Commands::Test { file } => test_files(file, explorer)?,
+        Commands::Eval { position } => eval_position(position, explorer)?,
+        Commands::Play { position } => play_position(position.as_deref(), explorer)?,
+        Commands::DB(db) => create_database(&db.file, db.max, db.min, db.num, db.stdin, explorer)?,
     };
 
     Ok(())
 }
 
 /// creates a sqlite3 database of positions at the specified location.
-fn create_database(filename: &str, max: u8, min: u8, num: usize, stdin: bool) -> Result<()> {
-    let mut db = Database::new(filename);
+fn create_database<T: Evaluator>(
+    filename: &str,
+    max: u8,
+    min: u8,
+    num: usize,
+    stdin: bool,
+    explorer: Explorer<T>) -> Result<()> {
 
+    let mut db = Database::new(filename);
     if stdin { // positions from stdin.
         let mut positions = Vec::new();
 
@@ -62,18 +73,17 @@ fn create_database(filename: &str, max: u8, min: u8, num: usize, stdin: bool) ->
         }
 
         // put positions in the database.
-        db.write_entries_from_list(positions.as_slice())?;
+        db.write_entries_from_list(positions.as_slice(), explorer)?;
     }
     else { // generate random positions
-        db.write_entries_random(num, max, min)?;
+        db.write_entries_random(num, max, min, explorer)?;
     }
     Ok(())
 }
 
 /// prints the evaluation and optimal move for a given position.
-fn eval_position(pos: &str) -> Result<()> {
+fn eval_position<T: Evaluator>(pos: &str, mut explorer: Explorer<T>) -> Result<()> {
     let board = Board::new_position(pos)?;
-    let mut explorer = Explorer::new();
     let (mv, eval) = explorer.solve(&board);
 
     print_eval(mv, eval);
@@ -82,9 +92,8 @@ fn eval_position(pos: &str) -> Result<()> {
 
 
 /// reads positions from stdin and outputs the evaluation and best move into stdout.
-fn eval_from_stdin() -> Result<()> {
+fn eval_from_stdin<T: Evaluator>(mut explorer: Explorer<T>) -> Result<()> {
     let mut buf = String::new();
-    let mut explorer = Explorer::new();
 
     loop {
         buf.clear();
@@ -127,7 +136,7 @@ fn print_eval(mv: u8, eval: i8) {
 
 
 /// plays the game from the given position.
-fn play_position(position: Option<&str>) -> Result<()> {
+fn play_position<T: Evaluator>(position: Option<&str>, mut explorer: Explorer<T>) -> Result<()> {
     let mut board;
     let mut pos_str;
 
@@ -139,8 +148,6 @@ fn play_position(position: Option<&str>) -> Result<()> {
         pos_str = String::new();
         board = Board::new();
     }
-
-    let mut explorer = Explorer::new();
 
     loop {
         println!("{}\n{}\n--------------------------------", board, pos_str);
@@ -231,10 +238,9 @@ fn play_position(position: Option<&str>) -> Result<()> {
 /// runs all of the tests from the given test file.
 /// The format of the test file is:
 /// [position] [evaluation]
-fn test_files(filename: &str) -> Result<()> {
+fn test_files<T: Evaluator>(filename: &str, mut explorer: Explorer<T>) -> Result<()> {
     let file = fs::File::open(filename)?;
     let reader = BufReader::new(file);
-    let mut explorer = Explorer::new();
 
     let mut totaltime = 0;
     let mut count = 0;

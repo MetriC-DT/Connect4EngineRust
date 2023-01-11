@@ -14,10 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::evaluate::Evaluator;
 use crate::scoredmoves::ScoredMoves;
 use crate::transpositiontable::{TranspositionTable, FLAG_UPPER, FLAG_LOWER, FLAG_EXACT};
 use crate::moves::{EMPTY_MOVE, Moves};
-use crate::board::{SIZE, Board, Position};
+use crate::board::{SIZE, Board};
 
 pub const MAX_SCORE: i8 = 2 + SIZE as i8;
 pub const TIE_SCORE: i8 = 0;
@@ -25,19 +26,22 @@ pub const PV_SIZE: usize = SIZE as usize;
 const REFUTATION_SCORE: i8 = 16;
 
 #[derive(Debug)]
-pub struct Explorer {
+pub struct Explorer<T> {
     /// number of nodes this explorer has searched.
     nodes_explored: usize,
 
     /// transposition table used by the explorer.
     transpositiontable: TranspositionTable,
+
+    /// evaluator for move scoring and ordering.
+    evaluator: T
 }
 
-impl Explorer {
-    pub fn new() -> Self {
+impl<T: Evaluator> Explorer<T> {
+    pub fn new(evaluator: T) -> Self {
         let nodes_explored = 0;
         let transpositiontable = TranspositionTable::new();
-        Self { nodes_explored, transpositiontable }
+        Self { nodes_explored, transpositiontable, evaluator }
     }
 
     /// returns the optimal move and evaluation for this explorer's current position.
@@ -116,7 +120,7 @@ impl Explorer {
         if board.has_winner() {
             // if board has winner already, then assume the current player is loser.
             // Therefore, the score would be negative.
-            return -Explorer::win_eval(board.moves_played());
+            return -Explorer::<T>::win_eval(board.moves_played());
         }
         else if board.is_filled() {
             return TIE_SCORE;
@@ -127,12 +131,12 @@ impl Explorer {
         // we can use these bounds as our (a, b) window.
 
         // the maximum score we can get is when we win directly on our next move.
-        let start_max: i8 = Explorer::win_eval(board.moves_played() + 1);
-        let start_max: i8 = i8::min(start_max, Explorer::win_eval(7)); // fastest win on 7 moves.
+        let start_max: i8 = Explorer::<T>::win_eval(board.moves_played() + 1);
+        let start_max: i8 = i8::min(start_max, Explorer::<T>::win_eval(7)); // fastest win on 7 moves.
 
         // the minimum score we can get is when we lose on the opponent's move (2 more moves).
-        let start_min: i8 = -Explorer::win_eval(board.moves_played() + 2);
-        let start_min: i8 = i8::max(start_min, -Explorer::win_eval(8)); // fastest loss on 8 moves.
+        let start_min: i8 = -Explorer::<T>::win_eval(board.moves_played() + 2);
+        let start_min: i8 = i8::max(start_min, -Explorer::<T>::win_eval(8)); // fastest loss on 8 moves.
 
 
         // our principal variation is guaranteed to be evaluated within the bounds (min, max).
@@ -157,7 +161,7 @@ impl Explorer {
                 let asp_max = i8::min(max + 1, g_max + 1);
 
                 if reset_t_table { self.transpositiontable.clear(); }
-                let eval = self.search(board, asp_min, asp_max, Board::move_score);
+                let eval = self.search(board, asp_min, asp_max);
 
                 if asp_min < eval && eval < asp_max {
                     return eval;
@@ -180,7 +184,7 @@ impl Explorer {
         }
         else {
             if reset_t_table { self.transpositiontable.clear(); }
-            return self.search(board, start_min - 1, start_max + 1, Board::move_score);
+            return self.search(board, start_min - 1, start_max + 1);
         }
     }
 
@@ -199,8 +203,7 @@ impl Explorer {
     fn search(&mut self,
               board: &Board,
               mut a: i8,
-              mut b: i8,
-              f: fn(&Board, Position) -> i8) -> i8 {
+              mut b: i8) -> i8 {
 
         // increment nodes searched.
         self.nodes_explored += 1;
@@ -221,26 +224,26 @@ impl Explorer {
 
         // quick endgame lookahead. checks if can win in 1 move.
         if winning_moves != 0 {
-            let win_eval = Explorer::win_eval(moves_played + 1);
+            let win_eval = Explorer::<T>::win_eval(moves_played + 1);
             return win_eval;
         }
 
         // looks for possible moves that don't lose the game immediately.
         let non_losing_moves = board.non_losing_moves(possible);
         if non_losing_moves == 0 { // all moves will lose.
-            let lose_eval = -Explorer::win_eval(moves_played + 2);
+            let lose_eval = -Explorer::<T>::win_eval(moves_played + 2);
             return lose_eval;
         }
 
         // if we had lost, it would have been on 4 turns later (us, opp, us, opp)
         // if a is less than the minimum possible score we can achieve, we can raise the bounds.
-        let min_eval = -Explorer::win_eval(moves_played + 3);
+        let min_eval = -Explorer::<T>::win_eval(moves_played + 3);
         a = i8::max(a, min_eval);
 
         // if we had won, it would have been on 3 turns later (us, opp, us).
         // if b is greater than the maximum possible score we can achieve, we can lower the bounds.
         // This gives us additional chances to see if we can prune.
-        let max_eval = Explorer::win_eval(moves_played + 2);
+        let max_eval = Explorer::<T>::win_eval(moves_played + 2);
         b = i8::min(b, max_eval);
 
         // prune, as this is a cut node.
@@ -277,7 +280,7 @@ impl Explorer {
                 next_moves.add(m, c, REFUTATION_SCORE);
             }
             else {
-                next_moves.add(m, c, f(board, m));
+                next_moves.add(m, c, self.evaluator.eval(board, m));
             }
         }
 
@@ -293,13 +296,13 @@ impl Explorer {
 
             let mut val;
             if i == 0 { // if first child, then assume it is the best move. Scan entire window.
-                val = -self.search(&boardcpy, -b, -a, f);
+                val = -self.search(&boardcpy, -b, -a);
             }
             else { // search with a null window.
-                val = -self.search(&boardcpy, -a - 1, -a, f);
+                val = -self.search(&boardcpy, -a - 1, -a);
 
                 if a < val && val < b { // if failed high, do a full re-search.
-                    val = -self.search(&boardcpy, -b, -val, f);
+                    val = -self.search(&boardcpy, -b, -val);
                 }
             }
 

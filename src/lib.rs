@@ -22,3 +22,4 @@ pub mod scoredmoves;
 pub mod database;
 pub mod cli;
 pub mod nnue;
+pub mod evaluate;

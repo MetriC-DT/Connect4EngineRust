@@ -41,7 +41,7 @@ pub struct Nnue {
 }
 
 impl Nnue {
-    /// creates new neural network.
+    /// Loads a new network from a file.
     fn new(modelfile: &Path, device: Device) -> Result<Self> {
         let p_prev = [0, 0];
         let indices = [0; SIZE as usize];
@@ -53,12 +53,11 @@ impl Nnue {
         Ok(Self { p_prev, indices, index_sz, net, input_tensor })
     }
 
-    /// obtains the tensor of a singular data point.
-    fn get_tensor_single(&mut self) -> &Tensor {
+    fn get_tensor(&mut self) -> &Tensor {
         &self.input_tensor
     }
 
-    fn get_tensor(&mut self) -> &Tensor {
-        &self.input_tensor
+    fn evaluate(&mut self) -> i8 {
+        3
     }
 }

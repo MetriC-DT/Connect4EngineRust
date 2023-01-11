@@ -21,4 +21,8 @@ version = "0.28.0"
 features = ["bundled"]
 
 [profile.dev]
-opt-level=3
+opt-level = 3
+
+[profile.release]
+debug = true
+lto = "fat"

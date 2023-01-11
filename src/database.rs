@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::evaluate::Evaluator;
 use crate::moves::Moves;
 use crate::strategy::Explorer;
 use crate::board::{Board, SIZE};
@@ -78,8 +79,11 @@ impl Database {
     }
 
     /// generates an entry for each position in the list.
-    pub fn write_entries_from_list(&mut self, positions: &[String]) -> Result<()> {
-        let mut explorer = Explorer::new();
+    pub fn write_entries_from_list<T: Evaluator>(
+        &mut self,
+        positions: &[String],
+        mut explorer: Explorer<T>) -> Result<()> {
+
         for position in positions {
             let board = Board::new_position(position)?;
             let eval = explorer.evaluate(&board);
@@ -116,14 +120,14 @@ impl Database {
     /// Otherwise, creates a new file. There may be repeat entries in the database.
     /// `max_moves` and `min_moves` gives the inclusive bounds of the number of moves the entry can
     /// contain.
-    pub fn write_entries_random(
+    pub fn write_entries_random<T: Evaluator>(
         &mut self,
         num_entries: usize,
         max_moves: u8,
-        min_moves: u8) -> Result<()> {
+        min_moves: u8,
+        mut explorer: Explorer<T>) -> Result<()> {
 
         let mut count = 0;
-        let mut explorer = Explorer::new();
 
         while count < num_entries {
             // generates a random board position.
