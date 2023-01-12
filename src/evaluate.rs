@@ -16,6 +16,7 @@
 
 use crate::board::PLAYABLE_REGION;
 use crate::board::{Board, Position};
+use crate::nnue::Nnue;
 
 /// Evaluator for a position. Used to obtain a move score for move sorting.
 pub trait Evaluator {
@@ -30,7 +31,18 @@ pub trait Evaluator {
 /// Evaluator that calculates the score of a move based on the number of threats it can create.
 pub struct ThreatCountEvaluator {}
 
+
+/// Evaluator that calculates the score of a move based on neural network.
+pub struct NNUE_Evaluator {
+    nnue: Nnue,
+}
+
+
 impl Evaluator for ThreatCountEvaluator {
+    fn new() -> Self {
+        Self { }
+    }
+
     /// counts the number of threats we have, if we played mv.
     fn eval(&self, board: &Board, mv: Position) -> i8 {
         let player = board.get_curr_player_pos();
@@ -39,8 +51,15 @@ impl Evaluator for ThreatCountEvaluator {
         let winning_position = Board::winning_moves(player | mv, not_taken);
         winning_position.count_ones() as i8
     }
+}
 
+
+impl Evaluator for NNUE_Evaluator {
     fn new() -> Self {
-        Self { }
+        todo!()
+    }
+
+    fn eval(&self, board: &Board, mv: Position) -> i8 {
+        todo!()
     }
 }

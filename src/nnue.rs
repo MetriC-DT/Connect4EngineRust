@@ -15,49 +15,66 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use std::path::Path;
-use tch::{Tensor, Device, CModule};
-use crate::board::{Position, SIZE};
+use tch::{Tensor, Device, CModule, nn::Module};
 use anyhow::Result;
+
+use crate::board::Position;
+
+const BOARD_BITS: usize = 48;
+const FEATURES: usize = 2 * BOARD_BITS + 1 + 1;
 
 #[derive(Debug)]
 pub struct Nnue {
-    /// saved player position (indexed 0 or 1 depending on current player).
-    p_prev: [Position; 2],
-
-    /// indices of set bits in player's positions to be used to construct the `input_tensor`.
-    /// There can be at most 42 set bits in a board.
-    /// Player 0 will put in values [0..41]
-    /// Player 1 will put in values [42..83]
-    indices: [usize; SIZE as usize],
-
-    /// size of index. We need to insert in ascending order.
-    index_sz: usize,
-
     /// the network to use to evaluate.
     net: CModule,
 
-    /// Tensor to use as the input to the NNUE
-    input_tensor: Tensor
+    tensor_arr: [f32; FEATURES],
+
+    tensor: Tensor
 }
+
 
 impl Nnue {
     /// Loads a new network from a file.
     fn new(modelfile: &Path, device: Device) -> Result<Self> {
-        let p_prev = [0, 0];
-        let indices = [0; SIZE as usize];
-        let index_sz = 0;
-        let input_tensor = Tensor::new();
-
         let net = tch::jit::CModule::load_on_device(modelfile, device)?;
+        let tensor = Tensor::new();
+        let tensor_arr = [0.; FEATURES];
 
-        Ok(Self { p_prev, indices, index_sz, net, input_tensor })
+        Ok(Self { net, tensor, tensor_arr })
     }
 
-    fn get_tensor(&mut self) -> &Tensor {
-        &self.input_tensor
+    fn update(
+        &mut self,
+        p0: Position,
+        p1: Position,
+        p2mv: u8,
+        moves: u32) {
+
+        for i in 0..BOARD_BITS {
+            self.tensor_arr[i] = ((p0 >> i) & 1) as f32;
+        }
+        for i in BOARD_BITS..2*BOARD_BITS {
+            self.tensor_arr[i] = ((p1 >> i) & 1) as f32;
+        }
+
+        self.tensor_arr[FEATURES - 2] = p2mv as f32;
+        self.tensor_arr[FEATURES - 1] = moves as f32;
+
+        self.tensor = Tensor::of_slice(&self.tensor_arr);
     }
 
-    fn evaluate(&mut self) -> i8 {
-        3
+
+    fn evaluate(
+        &mut self,
+        p0: Position,
+        p1: Position,
+        p2mv: u8,
+        moves: u32) -> i8 {
+
+        self.update(p0, p1, p2mv, moves);
+        let value = f32::from(self.net.forward(&self.tensor));
+
+        return value as i8
     }
 }
