@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use connect4engine::evaluate::{NnueEvaluator, Evaluator};
 use connect4engine::moves::{DEFAULT_ORDER, Moves};
 use connect4engine::board::{HEIGHT, Board, WIDTH, BOTTOM_ROW_MASK, COLUMN_MASK, COUNTS_PER_COL};
 
@@ -227,4 +228,22 @@ fn test_unique_position_key() {
     // checks last one
     let unique_position_key = b.get_unique_position_key();
     assert!(!seen_keys.contains(&unique_position_key));
+}
+
+#[test]
+fn test_evaluator() {
+    let mut evaluator = NnueEvaluator::new();
+    let board = Board::new();
+
+    let possible = Moves::new(board.possible_moves());
+
+    let mut evaluations = Vec::new();
+    for (pos, mv) in possible {
+        let eval = evaluator.eval(&board, pos);
+        evaluations.push(eval);
+        println!("mv {}: {}", mv, eval);
+    }
+
+    let maximum = evaluations.iter().max().unwrap();
+    assert_eq!(evaluations[0], *maximum)
 }

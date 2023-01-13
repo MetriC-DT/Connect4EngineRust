@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::path::Path;
 use crate::board::PLAYABLE_REGION;
 use crate::board::{Board, Position};
 use crate::nnue::Nnue;
@@ -24,7 +25,7 @@ pub trait Evaluator {
     fn new() -> Self;
 
     /// calculates the score of a position if a player decides to play `mv`.
-    fn eval(&self, board: &Board, mv: Position) -> i8;
+    fn eval(&mut self, board: &Board, mv: Position) -> i8;
 }
 
 
@@ -33,7 +34,7 @@ pub struct ThreatCountEvaluator {}
 
 
 /// Evaluator that calculates the score of a move based on neural network.
-pub struct NNUE_Evaluator {
+pub struct NnueEvaluator {
     nnue: Nnue,
 }
 
@@ -44,7 +45,7 @@ impl Evaluator for ThreatCountEvaluator {
     }
 
     /// counts the number of threats we have, if we played mv.
-    fn eval(&self, board: &Board, mv: Position) -> i8 {
+    fn eval(&mut self, board: &Board, mv: Position) -> i8 {
         let player = board.get_curr_player_pos();
         let total_board = board.get_total_pos();
         let not_taken = PLAYABLE_REGION ^ total_board;
@@ -54,12 +55,29 @@ impl Evaluator for ThreatCountEvaluator {
 }
 
 
-impl Evaluator for NNUE_Evaluator {
+impl Evaluator for NnueEvaluator {
     fn new() -> Self {
-        todo!()
+        let modelpath = Path::new("nnue/export_model.pth");
+        let nnue = Nnue::new(modelpath, tch::Device::Cpu).unwrap();
+        Self { nnue }
     }
 
-    fn eval(&self, board: &Board, mv: Position) -> i8 {
-        todo!()
+    fn eval(&mut self, board: &Board, mv: Position) -> i8 {
+        // we need to "pretend" that the player made the move already.
+        let opp_player = board.get_curr_player_pos() | mv;
+        let curr_player = board.get_opp_player_pos();
+
+        let moves = board.moves_played() + 1;
+        let p2mv = (moves % 2) as u8;
+
+        let (p0, p1) = if p2mv == 0 {
+            (curr_player, opp_player)
+        } else {
+            (opp_player, curr_player)
+        };
+
+        // we return the negative score since if this position after the player played `mv` is bad,
+        // that means the move must have been good for the player who made the move.
+        -self.nnue.evaluate(p0, p1, p2mv, moves)
     }
 }

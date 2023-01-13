@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
     # net.iterate_train(model, train_dl, test_dl, loss, opt)
     # net.save_model(modelfile, model)
-    t = net.get_tensor([1<<(3*7)], [1<<(0*7)], [0], [2])
+    t = net.get_tensor([1<<(2*7)], [0], [1], [1])
     print(model(t))
-    sm = torch.jit.trace(model, t)
-    sm.save(f"export_{modelfile}")
+    # sm = torch.jit.trace(model, t)
+    # sm.save(f"export_{modelfile}")

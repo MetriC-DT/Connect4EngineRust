@@ -36,7 +36,7 @@ pub struct Nnue {
 
 impl Nnue {
     /// Loads a new network from a file.
-    fn new(modelfile: &Path, device: Device) -> Result<Self> {
+    pub fn new(modelfile: &Path, device: Device) -> Result<Self> {
         let net = tch::jit::CModule::load_on_device(modelfile, device)?;
         let tensor = Tensor::new();
         let tensor_arr = [0.; FEATURES];
@@ -54,8 +54,8 @@ impl Nnue {
         for i in 0..BOARD_BITS {
             self.tensor_arr[i] = ((p0 >> i) & 1) as f32;
         }
-        for i in BOARD_BITS..2*BOARD_BITS {
-            self.tensor_arr[i] = ((p1 >> i) & 1) as f32;
+        for (sh, i) in (BOARD_BITS..2*BOARD_BITS).enumerate() {
+            self.tensor_arr[i] = ((p1 >> sh) & 1) as f32;
         }
 
         self.tensor_arr[FEATURES - 2] = p2mv as f32;
@@ -65,7 +65,7 @@ impl Nnue {
     }
 
 
-    fn evaluate(
+    pub fn evaluate(
         &mut self,
         p0: Position,
         p1: Position,
@@ -75,6 +75,6 @@ impl Nnue {
         self.update(p0, p1, p2mv, moves);
         let value = f32::from(self.net.forward(&self.tensor));
 
-        return value as i8
+        return value.round() as i8
     }
 }
