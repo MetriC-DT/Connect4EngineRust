@@ -25,4 +25,4 @@ opt-level = 3
 
 [profile.release]
 debug = true
-lto = "fat"
+# lto = "fat"

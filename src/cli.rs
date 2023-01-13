@@ -27,6 +27,10 @@ use clap::{Parser, Subcommand, Args};
 pub struct Cli {
     #[command(subcommand)]
     pub command: Option<Commands>,
+
+    /// enables use NNUE as evaluator.
+    #[arg(long, default_value_t=false)]
+    pub nnue: bool,
 }
 
 #[derive(Subcommand)]

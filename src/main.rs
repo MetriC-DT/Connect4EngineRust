@@ -18,7 +18,7 @@ use clap::Parser;
 use connect4engine::board::SIZE;
 use connect4engine::cli::{Cli, Commands};
 use connect4engine::database::Database;
-use connect4engine::evaluate::{ThreatCountEvaluator, Evaluator};
+use connect4engine::evaluate::{ThreatCountEvaluator, Evaluator, NnueEvaluator};
 use connect4engine::moves::EMPTY_MOVE;
 use connect4engine::{strategy::Explorer, board::Board};
 use std::fs;
@@ -30,15 +30,26 @@ use anyhow::Result;
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    let evaluator = ThreatCountEvaluator::new();
-    let explorer = Explorer::new(evaluator);
+    // if user specified NNUE, then use it. Otherwise, run with ThreatCountEvaluator.
+    if cli.nnue {
+        let evaluator = NnueEvaluator::new();
+        let explorer = Explorer::new(evaluator);
+        handle_commands(cli, explorer)?;
+    } else {
+        let evaluator = ThreatCountEvaluator::new();
+        let explorer = Explorer::new(evaluator);
+        handle_commands(cli, explorer)?;
+    }
 
+    Ok(())
+}
+
+fn handle_commands<T: Evaluator>(cli: Cli, explorer: Explorer<T>) -> Result<()> {
     // if no command inputted, run the stdin.
     if cli.command.is_none() {
         eval_from_stdin(explorer)?;
         return Ok(())
     }
-
 
     // command was inputted. Need to parse.
     match &cli.command.unwrap() {

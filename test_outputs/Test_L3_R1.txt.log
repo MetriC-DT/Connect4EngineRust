@@ -999,8 +999,8 @@
 14711164625315265231526226375765447437733	0
 2275634273633217117526375347415	-9
 
-time elapsed:        6416us
+time elapsed:        7294us
 positions evaluated: 46402
-speed:               7232.232 Kpos/s
-Avg time:            6.416 us
+speed:               6361.667 Kpos/s
+Avg time:            7.294 us
 Avg nodes:           46.402
