@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use clap::{Parser, Subcommand, Args};
+use clap::{Parser, Subcommand};
 
 /// command line arguments for the program.
 #[derive(Parser)]
@@ -52,27 +52,41 @@ pub enum Commands {
     Eval { position: String },
 
     /// Create a database of positions.
-    DB(DB)
+    DB {
+        #[command(subcommand)]
+        db_cmd: DBCommands,
+
+        /// file to save the new database, or append if it already exists.
+        file: String,
+    },
 }
 
-#[derive(Args)]
-pub struct DB {
-    /// file to save the new database, or append if it already exists.
-    pub file: String,
 
-    /// number of elements to save to the database.
-    #[arg(short, long, default_value_t=10000)]
-    pub num: usize,
 
-    /// minimum number of moves played required for each database entry.
-    #[arg(long, default_value_t=0)]
-    pub min: u8,
+#[derive(Subcommand)]
+pub enum DBCommands {
+    /// creates random positions.
+    Random {
+        /// number of elements to save to the database.
+        #[arg(short, long, default_value_t=10000)]
+        num: usize,
 
-    /// maximum number of moves played required for each database entry.
-    #[arg(long, default_value_t=42)]
-    pub max: u8,
+        /// minimum number of moves played required for each database entry.
+        #[arg(long, default_value_t=0)]
+        min: u8,
 
-    /// Enable reading positions from stdin. Overrides all the other optional flags.
-    #[arg(long, default_value_t=false)]
-    pub stdin: bool,
+        /// maximum number of moves played required for each database entry.
+        #[arg(long, default_value_t=42)]
+        max: u8,
+
+    },
+
+    /// reads positions from stdin
+    Stdin,
+
+    /// creates database of mirrored positions.
+    Mirror {
+        /// the database file to mirror.
+        src_file: String
+    }
 }

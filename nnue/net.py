@@ -10,15 +10,16 @@ from torch.utils.data import DataLoader
 # Hyperparameters
 LEARNING_RATE = 1e-4
 LOSS_FN = nn.functional.mse_loss
-EPOCHS = 500
+EPOCHS = 1000
 BATCH_SIZE = 1024
 OUT_LOG = "train_output.log"
 
 # Number of features the network takes in as inputs.
 BOARD_BITS = 48
 NUM_FEATURES = 2 * BOARD_BITS + 1 + 1
-L0 = 32
-L1 = 32
+L0 = 16
+L1 = 16
+L2 = 16
 
 # only the bits [0..5, 7..12, 14..19, 21..26, 28..33, 35..40, 42..47] are relevant.
 # Subtracted 63 since notation is little endian.
@@ -63,7 +64,9 @@ class Net(nn.Module):
             nn.ReLU(),
             nn.Linear(L0, L1),
             nn.ReLU(),
-            nn.Linear(L1, 1)
+            nn.Linear(L1, L2),
+            nn.ReLU(),
+            nn.Linear(L2, 1)
         )
         return
 
@@ -81,7 +84,7 @@ class Net(nn.Module):
 def load_model(path: str, device: str):
     """ Loads the model if it exists, otherwise, returns a new one. """
     model = Net()
-    optimizer = torch.optim.Adam(model.parameters())
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
     loss = LOSS_FN
 
     if os.path.exists(path):
@@ -99,6 +102,7 @@ def train_model(model: Net,
                 opt_fn: Optimizer):
 
     train_err = 0
+    count = 0
     for (p0, p1, stm, moves, expected) in dataloader:
         tensor = get_tensor(p0, p1, stm, moves)
         predicted = model(tensor)
@@ -107,32 +111,35 @@ def train_model(model: Net,
         err.backward()
         opt_fn.step()
         train_err += err.item()
+        count += 1
         # if batch % 4 == 0:
         #     print(f'Batch {batch} Err {err.item()}')
 
-    avg_error = train_err * BATCH_SIZE / len(dataloader)
+    avg_error = train_err / count
     print(f'TRAIN ERR: {avg_error}')
     return avg_error
+
 
 def test_model(model: Net,
                dataloader: DataLoader,
                loss_fn):
 
     test_err = 0
+    count = 0
     for (p0, p1, stm, moves, expected) in dataloader:
         tensor = get_tensor(p0, p1, stm, moves)
         predicted = model(tensor)
         err = loss_fn(predicted, expected)
         test_err += err.item()
+        count += 1
 
-    avg_error = test_err * BATCH_SIZE / len(dataloader)
+    avg_error = test_err / count
     print(f'TEST ERR: {avg_error}')
     return avg_error
 
 
 def save_model(file: str, model: Net):
     """ Saves the model to the specified file. """
-
     model_state_dict = model.state_dict()
     torch.save(model_state_dict, file)
     return

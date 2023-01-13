@@ -35,18 +35,20 @@ if __name__ == '__main__':
     model, opt, loss = net.load_model(modelfile, device)
     training = get_data(traindata)
     testing = get_data(testdata)
+    workers = torch.get_num_threads() * 2
+    print(f"USING {workers} WORKERS")
 
     train_dataset = TensorDataset(*training)
     test_dataset = TensorDataset(*testing)
-    train_dl = DataLoader(train_dataset, batch_size=net.BATCH_SIZE, num_workers=8)
-    test_dl = DataLoader(test_dataset, num_workers=8, batch_size=len(test_dataset))
+    train_dl = DataLoader(train_dataset, batch_size=net.BATCH_SIZE, num_workers=workers)
+    test_dl = DataLoader(test_dataset, num_workers=workers, batch_size=net.BATCH_SIZE)
 
     if os.path.isfile(net.OUT_LOG):
         os.remove(net.OUT_LOG)
 
-    # net.iterate_train(model, train_dl, test_dl, loss, opt)
-    # net.save_model(modelfile, model)
-    t = net.get_tensor([1<<(2*7)], [0], [1], [1])
+    net.iterate_train(model, train_dl, test_dl, loss, opt)
+    net.save_model(modelfile, model)
+    t = net.get_tensor([1<<(3*7)], [0], [1], [1])
     print(model(t))
-    # sm = torch.jit.trace(model, t)
-    # sm.save(f"export_{modelfile}")
+    sm = torch.jit.trace(model, t)
+    sm.save(f"export_{modelfile}")

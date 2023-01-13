@@ -78,6 +78,34 @@ impl Database {
         }
     }
 
+    pub fn write_inverted(&mut self, orig_db_file: &str) -> Result<()> {
+        let orig_db = Connection::open(orig_db_file)?;
+        let mut old_entries = orig_db.prepare("SELECT * FROM positions")?;
+        let mut rows = old_entries.query([])?;
+
+        while let Some(row) = rows.next()? {
+            let hist: String = row.get(0)?;
+            let eval: isize = row.get(5)?;
+
+            let inverted_hist = Self::position_invert(&hist);
+            let board = Board::new_position(&inverted_hist)?;
+
+            self.write_entry(&board, &inverted_hist, eval as i8)?;
+        }
+
+        self.connection.transaction()?.commit()?;
+        Ok(())
+    }
+
+    fn position_invert(position: &str) -> String {
+        let mut new_pos = String::with_capacity(position.len());
+        for c in position.chars() {
+            let next_char = 8 - c.to_digit(10).unwrap();
+            new_pos.push(char::from_digit(next_char, 10).unwrap());
+        }
+        return new_pos
+    }
+
     /// generates an entry for each position in the list.
     pub fn write_entries_from_list<T: Evaluator>(
         &mut self,

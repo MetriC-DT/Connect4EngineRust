@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
-import glob
 import sqlite3
+import sys
 
-files = list(glob.glob('*.sqlite3'))
+files = list(sys.argv[1:])
 print(files)
 
 conn = sqlite3.connect('output.sqlite3')
 cur = conn.cursor()
-cur.execute("""CREATE TABLE positions
+cur.execute("""CREATE TABLE IF NOT EXISTS positions
                 (history TEXT,
                  p2mv INTEGER,
                  moves INTEGER,

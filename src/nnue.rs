@@ -28,8 +28,10 @@ pub struct Nnue {
     /// the network to use to evaluate.
     net: CModule,
 
+    /// array to construct the tensor.
     tensor_arr: [f32; FEATURES],
 
+    /// the tensor to input.
     tensor: Tensor
 }
 

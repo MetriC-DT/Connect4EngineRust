@@ -16,7 +16,7 @@
 
 use clap::Parser;
 use connect4engine::board::SIZE;
-use connect4engine::cli::{Cli, Commands};
+use connect4engine::cli::{Cli, Commands, DBCommands};
 use connect4engine::database::Database;
 use connect4engine::evaluate::{ThreatCountEvaluator, Evaluator, NnueEvaluator};
 use connect4engine::moves::EMPTY_MOVE;
@@ -56,39 +56,55 @@ fn handle_commands<T: Evaluator>(cli: Cli, explorer: Explorer<T>) -> Result<()> 
         Commands::Test { file } => test_files(file, explorer)?,
         Commands::Eval { position } => eval_position(position, explorer)?,
         Commands::Play { position } => play_position(position.as_deref(), explorer)?,
-        Commands::DB(db) => create_database(&db.file, db.max, db.min, db.num, db.stdin, explorer)?,
+        Commands::DB { file, db_cmd } => match db_cmd {
+            DBCommands::Stdin => create_database_from_stdin(file, explorer)?,
+            DBCommands::Random { num, min, max } => create_database_random(file, *max, *min, *num, explorer)?,
+            DBCommands::Mirror { src_file } => create_database_mirrored(file, src_file)?,
+        }
     };
 
     Ok(())
 }
 
+fn create_database_mirrored(
+    file: &str,
+    src_file: &str) -> Result<()> {
+
+    let mut db = Database::new(file);
+    db.write_inverted(src_file)?;
+    Ok(())
+}
+
+fn create_database_from_stdin<T: Evaluator>(
+    filename: &str,
+    explorer: Explorer<T>) -> Result<()> {
+
+    let mut positions = Vec::new();
+    let mut db = Database::new(filename);
+
+    loop {
+        let mut buf = String::with_capacity(SIZE as usize + 1);
+        let r = io::stdin().read_line(&mut buf)?;
+        if r == 0 { break; }
+        let strpos = String::from(buf.trim());
+        positions.push(strpos);
+    }
+
+    // put positions in the database.
+    db.write_entries_from_list(positions.as_slice(), explorer)?;
+    Ok(())
+}
+
 /// creates a sqlite3 database of positions at the specified location.
-fn create_database<T: Evaluator>(
+fn create_database_random<T: Evaluator>(
     filename: &str,
     max: u8,
     min: u8,
     num: usize,
-    stdin: bool,
     explorer: Explorer<T>) -> Result<()> {
 
     let mut db = Database::new(filename);
-    if stdin { // positions from stdin.
-        let mut positions = Vec::new();
-
-        loop {
-            let mut buf = String::with_capacity(SIZE as usize + 1);
-            let r = io::stdin().read_line(&mut buf)?;
-            if r == 0 { break; }
-            let strpos = String::from(buf.trim());
-            positions.push(strpos);
-        }
-
-        // put positions in the database.
-        db.write_entries_from_list(positions.as_slice(), explorer)?;
-    }
-    else { // generate random positions
-        db.write_entries_random(num, max, min, explorer)?;
-    }
+    db.write_entries_random(num, max, min, explorer)?;
     Ok(())
 }
 
