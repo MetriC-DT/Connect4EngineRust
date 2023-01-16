@@ -72,11 +72,11 @@ impl Nnue {
         p0: Position,
         p1: Position,
         p2mv: u8,
-        moves: u32) -> i8 {
+        moves: u32) -> isize {
 
         self.update(p0, p1, p2mv, moves);
         let value = f32::from(self.net.forward(&self.tensor));
 
-        return value.round() as i8
+        return value.round() as isize
     }
 }

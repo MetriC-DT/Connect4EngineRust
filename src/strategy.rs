@@ -23,7 +23,6 @@ use crate::board::{SIZE, Board};
 pub const MAX_SCORE: i8 = 2 + SIZE as i8;
 pub const TIE_SCORE: i8 = 0;
 pub const PV_SIZE: usize = SIZE as usize;
-const REFUTATION_SCORE: i8 = 16;
 
 #[derive(Debug)]
 pub struct Explorer<T> {
@@ -277,7 +276,7 @@ impl<T: Evaluator> Explorer<T> {
         let mut next_moves = ScoredMoves::new();
         for (m, c) in Moves::new(non_losing_moves) {
             if refutation == c { // prioritize searching refutation move first.
-                next_moves.add(m, c, REFUTATION_SCORE);
+                next_moves.add(m, c, isize::MAX);
             }
             else {
                 next_moves.add(m, c, self.evaluator.eval(board, m));

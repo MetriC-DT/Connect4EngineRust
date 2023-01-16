@@ -25,7 +25,7 @@ pub trait Evaluator {
     fn new() -> Self;
 
     /// calculates the score of a position if a player decides to play `mv`.
-    fn eval(&mut self, board: &Board, mv: Position) -> i8;
+    fn eval(&mut self, board: &Board, mv: Position) -> isize;
 }
 
 
@@ -45,12 +45,12 @@ impl Evaluator for ThreatCountEvaluator {
     }
 
     /// counts the number of threats we have, if we played mv.
-    fn eval(&mut self, board: &Board, mv: Position) -> i8 {
+    fn eval(&mut self, board: &Board, mv: Position) -> isize {
         let player = board.get_curr_player_pos();
         let total_board = board.get_total_pos();
         let not_taken = PLAYABLE_REGION ^ total_board;
         let winning_position = Board::winning_moves(player | mv, not_taken);
-        winning_position.count_ones() as i8
+        winning_position.count_ones() as isize
     }
 }
 
@@ -62,7 +62,7 @@ impl Evaluator for NnueEvaluator {
         Self { nnue }
     }
 
-    fn eval(&mut self, board: &Board, mv: Position) -> i8 {
+    fn eval(&mut self, board: &Board, mv: Position) -> isize {
         // we need to "pretend" that the player made the move already.
         let opp_player = board.get_curr_player_pos() | mv;
         let curr_player = board.get_opp_player_pos();
@@ -78,6 +78,6 @@ impl Evaluator for NnueEvaluator {
 
         // we return the negative score since if this position after the player played `mv` is bad,
         // that means the move must have been good for the player who made the move.
-        -self.nnue.evaluate(p0, p1, p2mv, moves)
+        -self.nnue.evaluate(p0, p1, p2mv, moves) as isize
     }
 }

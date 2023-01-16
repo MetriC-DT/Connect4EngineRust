@@ -33,6 +33,6 @@ if __name__ == "__main__":
     for file_to_check in files:
         basename = os.path.basename(file_to_check)
         outputfile = f'test_outputs/{basename}.log'
-        os.system(f'cargo rr -- test {file_to_check} > {outputfile}')
+        os.system(f'cargo rr -- --nnue test {file_to_check} > {outputfile}')
         validate(file_to_check, outputfile)
         os.system(f'tail -n5 test_outputs/{basename}.log')

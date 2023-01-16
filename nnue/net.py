@@ -10,16 +10,18 @@ from torch.utils.data import DataLoader
 # Hyperparameters
 LEARNING_RATE = 1e-4
 LOSS_FN = nn.functional.mse_loss
-EPOCHS = 1000
+EPOCHS = 50
 BATCH_SIZE = 1024
 OUT_LOG = "train_output.log"
 
 # Number of features the network takes in as inputs.
 BOARD_BITS = 48
 NUM_FEATURES = 2 * BOARD_BITS + 1 + 1
-L0 = 16
-L1 = 16
-L2 = 16
+L0 = 64
+L1 = 32
+L2 = 32
+L3 = 32
+L4 = 16
 
 # only the bits [0..5, 7..12, 14..19, 21..26, 28..33, 35..40, 42..47] are relevant.
 # Subtracted 63 since notation is little endian.
@@ -66,7 +68,9 @@ class Net(nn.Module):
             nn.ReLU(),
             nn.Linear(L1, L2),
             nn.ReLU(),
-            nn.Linear(L2, 1)
+            nn.Linear(L2, L3),
+            nn.ReLU(),
+            nn.Linear(L3, 1)
         )
         return
 
@@ -101,41 +105,38 @@ def train_model(model: Net,
                 loss_fn,
                 opt_fn: Optimizer):
 
-    train_err = 0
-    count = 0
+    correct = 0
     for (p0, p1, stm, moves, expected) in dataloader:
         tensor = get_tensor(p0, p1, stm, moves)
         predicted = model(tensor)
         err = loss_fn(predicted, expected)
+        correct += count_correct(predicted, expected)
         opt_fn.zero_grad()
         err.backward()
         opt_fn.step()
-        train_err += err.item()
-        count += 1
-        # if batch % 4 == 0:
-        #     print(f'Batch {batch} Err {err.item()}')
 
-    avg_error = train_err / count
-    print(f'TRAIN ERR: {avg_error}')
-    return avg_error
+    train_accuracy = correct / len(dataloader.dataset)
+    print(f'TRAIN ACC: {train_accuracy}')
+    return train_accuracy
+
+
+def count_correct(pred: Tensor, expected: Tensor):
+    predicted_round = torch.round(pred)
+    return torch.count_nonzero(predicted_round == expected)
 
 
 def test_model(model: Net,
-               dataloader: DataLoader,
-               loss_fn):
+               dataloader: DataLoader):
 
-    test_err = 0
-    count = 0
+    correct = 0
     for (p0, p1, stm, moves, expected) in dataloader:
         tensor = get_tensor(p0, p1, stm, moves)
         predicted = model(tensor)
-        err = loss_fn(predicted, expected)
-        test_err += err.item()
-        count += 1
+        correct += count_correct(predicted, expected)
 
-    avg_error = test_err / count
-    print(f'TEST ERR: {avg_error}')
-    return avg_error
+    test_accuracy = correct / len(dataloader.dataset)
+    print(f'TEST ACC: {test_accuracy}')
+    return test_accuracy
 
 
 def save_model(file: str, model: Net):
@@ -150,9 +151,9 @@ def iterate_train(model, train_data, test_data, loss_fn, opt_fn):
         for t in range(EPOCHS):
             print(f"EPOCH {t+1} -------------------------------------------")
             start = time.perf_counter()
-            train_err = train_model(model, train_data, loss_fn, opt_fn)
-            test_err = test_model(model, test_data, loss_fn)
-            f.write(f"{train_err} {test_err}\n")
+            train_acc = train_model(model, train_data, loss_fn, opt_fn)
+            test_acc = test_model(model, test_data)
+            f.write(f"{train_acc} {test_acc}\n")
             f.flush()
             end = time.perf_counter()
-            print(f"TIME ELAPSED = {(end - start) * 1e3}ms")
+            print(f"TIME ELAPSED = {(end - start) * 1e3:0.2f}ms")
