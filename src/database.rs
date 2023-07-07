@@ -19,7 +19,7 @@ use crate::strategy::Explorer;
 use crate::board::{Board, SIZE};
 use anyhow::Result;
 use rand::seq::SliceRandom;
-use rusqlite::Connection;
+use rusqlite::{Connection, Transaction};
 
 /// Each DBEntry contains information about the position. The `current player` represents the
 /// player who is next to move. `opponent player` is the player who played the previous move.
@@ -76,20 +76,21 @@ impl Database {
     /// generates an entry for each position in the list.
     pub fn write_entries_from_list(&mut self, positions: &[String]) -> Result<()> {
         let mut explorer = Explorer::new();
+        let tx = self.connection.transaction()?;
         for position in positions {
             let board = Board::new_position(position)?;
             let eval = explorer.evaluate(&board);
-            self.write_entry(&board, position, eval)?;
+            Database::write_entry(&tx, &board, position, eval)?;
         }
 
         // commit all the changes to the connected database.
-        self.connection.transaction()?.commit()?;
+        tx.commit()?;
         Ok(())
     }
 
     /// writes a singular entry into the database. Still need to commit changes at the end.
-    fn write_entry(&mut self, board: &Board, hist: &str, eval: i8) -> Result<()> {
-        let mut stmt = self.connection.prepare_cached(INSERT_STR)?;
+    fn write_entry(tx: &Transaction, board: &Board, hist: &str, eval: i8) -> Result<()> {
+        let mut stmt = tx.prepare_cached(INSERT_STR)?;
         let player = board.get_curr_player_pos();
         let opponent = board.get_opp_player_pos();
         let moves_played = board.moves_played();
@@ -120,6 +121,7 @@ impl Database {
 
         let mut count = 0;
         let mut explorer = Explorer::new();
+        let tx = self.connection.transaction()?;
 
         while count < num_entries {
             // generates a random board position.
@@ -130,7 +132,7 @@ impl Database {
                 let eval = explorer.evaluate(&board);
 
                 // insert into database.
-                self.write_entry(&board, &hist, eval)?;
+                Database::write_entry(&tx, &board, &hist, eval)?;
 
                 // successfully added a new entry.
                 count += 1;
@@ -139,7 +141,7 @@ impl Database {
         }
 
         // commit all the changes to the connected database.
-        self.connection.transaction()?.commit()?;
+        tx.commit()?;
         Ok(())
     }
 
